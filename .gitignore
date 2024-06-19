@@ -1,0 +1,29 @@
+node_modules
+dist_electron
+dist_renderer
+build
+coverage
+tsconfig.tsbuildinfo
+.DS_Store
+*.local
+.env
+.env.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+# IDE / Editor specific
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Electron Builder output
+release/
+*.dmg
+*.exe
+*.AppImage
+*.nsis.zip
+dist/

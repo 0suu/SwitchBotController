@@ -1,0 +1,65 @@
+# .github/workflows/ci.yml
+name: Node.js CI & Build
+
+on:
+  push:
+    branches: [ "main", "develop" ] # Or your primary branches
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest # Using Ubuntu as a common CI runner
+
+    strategy:
+      matrix:
+        node-version: [18.x] # Specify Node.js versions to test against
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: "npm" # Enable caching for npm dependencies
+
+    - name: Install dependencies
+    - name: Run tests
+      run: npm test
+      run: npm ci # Use npm ci for cleaner installs in CI
+
+    - name: TypeScript Compile Check (Lint placeholder)
+      run: npm run build:electron:main && npm run build:electron:preload && npx tsc --project src/renderer/tsconfig.json --noEmit
+      # This checks if main, preload, and renderer TypeScript code compiles without errors.
+      # Replace with actual linting command when a linter is added.
+
+      # Replace with `npm test` when Jest/React Testing Library tests are added.
+
+    - name: Build application (compiles main, preload, renderer)
+      run: npm run build
+      # This script typically runs:
+      # - vite build (for renderer)
+      # - tsc (for main and preload)
+
+    - name: Package application (Linux AppImage example)
+      run: |
+        # Need to install dependencies for electron-builder to run on Linux
+        # sudo apt-get update
+        # sudo apt-get install -y --no-install-recommends libopenjp2-7 libgconf-2-4 libatk1.0-0 libatk-bridge2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libgbm1 libnss3 libasound2
+        # The above dependencies might be needed for a full AppImage build with GUI tests.
+        # For a headless build check or if runner has them, might not be needed.
+        # For now, we focus on the command itself.
+        npm run package -- --linux AppImage --dir # Build unpacked dir first to check
+        # npm run package -- --linux AppImage # Build the actual AppImage
+      # Note: Full GUI app packaging might be complex in headless CI environments
+      # without specific display servers (e.g., Xvfb). For now, this is a structural step.
+
+    # Optional: Upload build artifacts (e.g., the AppImage)
+    # - name: Upload Linux Build Artifact
+    #   uses: actions/upload-artifact@v3
+    #   with:
+    #     name: switchbot-client-linux-appimage
+    #     path: release/*.AppImage # Adjust path as needed
+    #     if-no-files-found: error # Optional: fail if no file is found
