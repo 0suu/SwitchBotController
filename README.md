@@ -56,6 +56,12 @@ npm run dev
 Vite (renderer) と Electron (main) が並行起動します。  
 起動後、Settings 画面から API Token / Secret を登録・検証してください。
 
+開発モードではなく、ビルド済みアプリとして起動したい場合は、先にビルドを行ってから `npm run start` を実行します。
+```bash
+npm run build
+npm run start
+```
+
 ### 3. テスト
 ```bash
 npm test            # 単体テスト
