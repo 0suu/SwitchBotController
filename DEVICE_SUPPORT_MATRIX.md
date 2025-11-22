@@ -63,7 +63,7 @@ This table lists all device and appliance types mentioned in `SwitchBotApiDocume
 | Lock Lite | ? | |
 | Lock Pro | ? | |
 | Lock Ultra | ? | |
-| Meter | 〇? | |
+| Meter | 〇 | |
 | Meter Plus (JP) | ? | |
 | Meter Plus (US) | ? | |
 | Meter Pro | ? | |
