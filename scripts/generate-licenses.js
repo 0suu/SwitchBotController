@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
-const checker = require('license-checker');
+const checker = require('license-checker-rseidelsohn');
 
 const init = util.promisify(checker.init);
 const projectRoot = path.resolve(__dirname, '..');
