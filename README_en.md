@@ -30,7 +30,7 @@ See [Device Support Matrix / 対応デバイス一覧](DEVICE_SUPPORT_MATRIX.md)
    (Cloud Services → Developer options; see the official SwitchBot documentation for details).
 2. Start the app:
    - If you have a packaged build (installer / AppImage / dmg): install and launch it as a normal desktop application.
-   - If you are running from source, see the “Developer Setup” section below and run `npm run dev` or `npm run start`.
+   - If you are running from source, see the “Developer Setup” section below and run `npm run dev` (development mode).
 3. Open the `Settings` tab in the top app bar.
 4. Enter your **Open Token** and **Secret Key**, then click `Validate and Save`.
    - If validation succeeds, the app stores the credentials locally and automatically starts using them.
@@ -62,6 +62,12 @@ npm run dev
 ```
 This starts Vite (renderer) and Electron (main) in parallel.  
 After startup, open the `Settings` screen and register / validate your API Token and Secret.
+
+If you prefer to run the built app instead of development mode, first build and then start Electron:
+```bash
+npm run build
+npm run start
+```
 
 ### 3. Tests
 ```bash

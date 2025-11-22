@@ -4,7 +4,8 @@ This table lists all device and appliance types mentioned in `SwitchBotApiDocume
 この表は、`SwitchBotApiDocuments.md`（SwitchBot API v1.1）に記載されているデバイス・家電カテゴリと、本アプリでの対応状況をまとめたものです。
 
 > Note / 備考:  
-> For now, all devices are marked as `?` (unknown / 未検証).  
+> The statuses in this table (`〇` / `△` / `?` / `×`) are based on the current implementation and limited manual checks, and may not be complete or up to date.  
+> 本表のステータス（`〇` / `△` / `?` / `×`）は、現時点の実装と限定的な確認に基づくものであり、必ずしも最新・完全ではありません。実際の挙動はご自身でも確認してください。  
 
 ## Status legend / ステータス凡例
 
@@ -62,7 +63,7 @@ This table lists all device and appliance types mentioned in `SwitchBotApiDocume
 | Lock Lite | ? | |
 | Lock Pro | ? | |
 | Lock Ultra | ? | |
-| Meter | 〇? | |
+| Meter | 〇 | |
 | Meter Plus (JP) | ? | |
 | Meter Plus (US) | ? | |
 | Meter Pro | ? | |
