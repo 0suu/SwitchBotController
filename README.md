@@ -77,6 +77,8 @@ macOS / Linux 向けビルドでは `assets/icon.icns` と `assets/icon.png` が
 
 Electron Builder の設定 (`package.json` の `build` フィールド) により、アプリ ID や配布ターゲット、アイコンなどが制御されます。
 
+依存ライブラリのライセンス一覧は `npm run build:licenses`（`npm run build` 内で自動実行）で `build/licenses/THIRD_PARTY_LICENSES.txt` に生成され、ルートの `LICENSE` と共にインストーラへ同梱されます。依存パッケージを更新した際はこのスクリプトを再実行してください。
+
 ## 必要環境
 - Node.js 20 以上推奨（Electron 36 ベース）
 - npm

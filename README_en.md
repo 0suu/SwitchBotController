@@ -86,6 +86,8 @@ On macOS / Linux builds, make sure the following assets exist (replace with your
 
 Electron Builder uses the configuration defined in `package.json` (`build` field) for app ID, product name, and targets.
 
+Dependency licenses are generated via `npm run build:licenses` (automatically executed inside `npm run build`) into `build/licenses/THIRD_PARTY_LICENSES.txt`, and Electron Builder bundles that file together with the root `LICENSE` in the installers. Re-run the script after dependency changes to refresh the list.
+
 ## Project Structure (Overview)
 - `src/main/` – Electron main process. Exposes IPC handlers for SwitchBot API and manages `electron-store` for settings and credentials.
 - `src/preload/` – Preload scripts that bridge the main process and renderer (e.g., `electronStore`, `switchBotBridge`).
