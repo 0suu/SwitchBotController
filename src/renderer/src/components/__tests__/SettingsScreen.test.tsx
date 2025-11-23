@@ -38,7 +38,7 @@ describe('SettingsScreen', () => {
     });
     // Check for the main title "API Settings"
     // Using a matcher that is flexible with text content (e.g. to ignore case or partial matches if needed)
-    expect(screen.getByText(/API Settings/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Settings/i, level: 4 })).toBeInTheDocument();
   });
 
   // Add more tests:
