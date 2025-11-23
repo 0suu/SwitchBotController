@@ -1,3 +1,7 @@
+import packageJson from "../../../package.json";
+
+const APP_VERSION = packageJson?.version || "0.0.0";
+
 export type Language = "en" | "ja";
 
 type Dictionary = Record<string, string>;
@@ -5,7 +9,7 @@ type Dictionary = Record<string, string>;
 const en: Dictionary = {
   // Generic
   "App Title": "SwitchBot Client",
-  "Footer Version": "SwitchBot PC Client v0.0.1",
+  "Footer Version": `SwitchBot PC Client v${APP_VERSION}`,
   Devices: "Devices",
   Settings: "Settings",
   Theme: "Theme",
@@ -125,7 +129,7 @@ const en: Dictionary = {
 const ja: Dictionary = {
   // Generic
   "App Title": "SwitchBot クライアント",
-  "Footer Version": "SwitchBot PC クライアント v0.0.1",
+  "Footer Version": `SwitchBot PC クライアント v${APP_VERSION}`,
   Devices: "デバイス",
   Settings: "設定",
   Theme: "テーマ",
