@@ -16,7 +16,7 @@ interface AppSettings {
 const schema = {
   apiToken: { type: "string" },
   apiSecret: { type: "string" }, // For storing the secret, consider encryption
-  pollingIntervalSeconds: { type: "number", default: 10 },
+  pollingIntervalSeconds: { type: "number", default: 60 },
   theme: { type: "string", default: "dark" },
   logRetentionDays: { type: "number", default: 7 },
 };
