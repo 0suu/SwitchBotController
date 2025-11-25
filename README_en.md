@@ -96,10 +96,7 @@ Dependency licenses are generated via `npm run build:licenses` (automatically ex
 
 ## Security Notes
 - API Token and Secret Key are stored using `electron-store`.  
-  By default these values are not encrypted and can be read by the local OS user.
-- For production distribution, consider:
-  - Setting an `encryptionKey` in `src/main/main.ts`, or
-  - Using a platform-specific secure storage mechanism (e.g., OS keychain).
+  These values are not encrypted and can be read by the local OS user.
 
 Handle and distribute builds with the same level of care as any application that stores API credentials.
 
