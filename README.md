@@ -94,9 +94,9 @@ Electron Builder の設定 (`package.json` の `build` フィールド) によ�
 - `src/renderer/` … React + Vite フロントエンド。デバイス一覧 / 詳細 / シーン / 設定画面を実装しています。
 - `src/api/` … SwitchBot API の型定義とラッパー。
 
-## セキュリティの注意
+## セキュリティ
 `electron-store` で API トークンとシークレットを保存しています。  
-デフォルトでは暗号化されずローカルユーザーが読み取れるため、配布時は `src/main/main.ts` の `encryptionKey` を設定するか、OS キーチェーンを利用するなど、安全な秘匿方法を検討してください。
+暗号化されずローカルに保存されます。
 
 ## ライセンス
 ISC License
