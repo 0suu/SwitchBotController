@@ -1,4 +1,8 @@
 # SwitchBot Controller
+<p>
+  <img src="https://github.com/user-attachments/assets/11873232-5be8-41ab-8665-313066dca139" width="45%">
+  <img src="https://github.com/user-attachments/assets/77875e1d-b3d9-42e8-a9dd-1e8936c705c8" width="45%">
+</p>
 
 [English README is here](README_en.md)
 
