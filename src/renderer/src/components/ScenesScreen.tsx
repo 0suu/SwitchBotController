@@ -11,6 +11,23 @@ import IconButton from "@mui/material/IconButton";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragStartEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 import { AppDispatch, RootState } from "../store/store";
 import { useTranslation } from "../useTranslation";
@@ -68,6 +85,11 @@ export const ScenesScreen: React.FC = () => {
   const [reorderList, setReorderList] = useState<string[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    })
+  );
 
   const orderedScenes: SceneSummary[] = useMemo(() => {
     const idToScene = new Map<string, SceneSummary>();
@@ -134,7 +156,7 @@ export const ScenesScreen: React.FC = () => {
   }, [orderedScenes, isReorderMode]);
 
   useEffect(() => {
-    if (!draggingId) return;
+    if (!draggingId || !isReorderMode) return;
 
     const handleWheel = (e: WheelEvent) => {
       window.scrollBy(0, e.deltaY);
@@ -145,49 +167,55 @@ export const ScenesScreen: React.FC = () => {
     return () => {
       window.removeEventListener("wheel", handleWheel);
     };
-  }, [draggingId]);
+  }, [draggingId, isReorderMode]);
 
-  const moveIdInList = (list: string[], fromId: string, toId: string) => {
-    if (fromId === toId) return list;
-    const fromIndex = list.indexOf(fromId);
-    const toIndex = list.indexOf(toId);
-    if (fromIndex === -1 || toIndex === -1) return list;
-    const next = [...list];
-    next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, fromId);
-    return next;
-  };
-
-  const handleReorder = (visibleOrder: string[]) => {
-    setReorderList(visibleOrder);
-  };
-
-  const handleDragStart = (id: string) => (event: React.DragEvent<HTMLDivElement>) => {
-    setDraggingId(id);
+  const handleDragStart = (event: DragStartEvent) => {
+    if (!isReorderMode) return;
+    setDraggingId(event.active.id as string);
     setDragOverId(null);
-    event.dataTransfer.effectAllowed = "move";
   };
 
-  const handleDragOver = (overId: string) => (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    if (!draggingId || draggingId === overId) return;
+  const handleDragOver = (event: DragOverEvent) => {
+    if (!isReorderMode) return;
+    const overId = event.over?.id as string | undefined;
+    if (!overId || overId === draggingId) {
+      setDragOverId(null);
+      return;
+    }
     setDragOverId(overId);
   };
 
-  const handleDragLeave = () => {
-    setDragOverId(null);
-  };
-
-  const handleDrop = (overId: string) => (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    if (draggingId && overId && draggingId !== overId) {
-      setReorderList((prev) => moveIdInList(prev, draggingId, overId));
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!isReorderMode) {
+      setDraggingId(null);
+      setDragOverId(null);
+      return;
     }
+
     setDraggingId(null);
+
+    if (!over) {
+      setDragOverId(null);
+      return;
+    }
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
     setDragOverId(null);
+
+    if (activeId !== overId) {
+      setReorderList((prev) => {
+        const oldIndex = prev.indexOf(activeId);
+        const newIndex = prev.indexOf(overId);
+        if (oldIndex === -1 || newIndex === -1) return prev;
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
   };
 
-  const handleDragEnd = () => {
+  const handleDragCancel = () => {
     setDraggingId(null);
     setDragOverId(null);
   };
@@ -226,6 +254,119 @@ export const ScenesScreen: React.FC = () => {
   };
 
   const handleSuccessClose = () => setSuccessOpen(false);
+
+  const SortableSceneCard: React.FC<{ scene: SceneSummary; isExecuting: boolean; sceneError?: string | null }> = ({
+    scene,
+    isExecuting,
+    sceneError,
+  }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
+      id: scene.sceneId,
+      disabled: !isReorderMode,
+    });
+
+    return (
+      <Box
+        ref={setNodeRef}
+        {...attributes}
+        {...listeners}
+        sx={{
+          position: "relative",
+          opacity: isDragging || draggingId === scene.sceneId ? 0.5 : 1,
+          transition: "opacity 0.2s ease",
+          outline: dragOverId === scene.sceneId || isOver ? "2px solid" : "none",
+          outlineColor: "primary.main",
+          outlineOffset: "2px",
+          borderRadius: 2,
+          cursor: "grab",
+        }}
+        style={{
+          transform: CSS.Transform.toString(transform),
+          transition,
+        }}
+      >
+        {isReorderMode && (
+          <IconButton
+            size="small"
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              bgcolor: "background.paper",
+              boxShadow: 1,
+              pointerEvents: "none",
+            }}
+            aria-label={t("Reorder")}
+          >
+            <DragIndicatorIcon fontSize="small" />
+          </IconButton>
+        )}
+        <Button
+          variant="contained"
+          onClick={() => handleExecute(scene.sceneId)}
+          disabled={!isTokenValid || isExecuting || isReorderMode}
+          sx={{
+            position: "relative",
+            height: 50,
+            width: "100%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            p: 1,
+            borderRadius: 2,
+            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            "&:hover:not(:disabled)": {
+              transform: "translateY(-2px)",
+              boxShadow: (theme) =>
+                theme.palette.mode === "dark"
+                  ? "0 4px 12px rgba(100, 181, 246, 0.25)"
+                  : "0 4px 12px rgba(25, 118, 210, 0.25)",
+            },
+          }}
+        >
+          {isExecuting ? (
+            <>
+              <CircularProgress size={16} sx={{ color: "inherit", mb: 0.5 }} />
+              <Typography variant="caption" sx={{ fontSize: "0.7rem" }}>
+                {t("Executing...")}
+              </Typography>
+            </>
+          ) : (
+            <Typography
+              variant="body2"
+              fontWeight={600}
+              noWrap
+              sx={{
+                textAlign: "center",
+                width: "100%",
+                px: 0.5,
+                fontSize: "0.85rem",
+              }}
+            >
+              {scene.sceneName || t("Unnamed Scene")}
+            </Typography>
+          )}
+          {sceneError && (
+            <Typography
+              variant="caption"
+              color="error"
+              sx={{
+                position: "absolute",
+                bottom: 8,
+                left: 0,
+                right: 0,
+                textAlign: "center",
+                px: 1,
+              }}
+            >
+              Error
+            </Typography>
+          )}
+        </Button>
+      </Box>
+    );
+  };
 
   if (!apiToken) {
     return (
@@ -293,129 +434,129 @@ export const ScenesScreen: React.FC = () => {
           {!error && isTokenValid && scenes.length === 0 && (
             <Alert severity="info">{t("No scenes found. Create a manual scene in the SwitchBot app.")}</Alert>
           )}
-          <motion.div variants={containerVariants} initial="hidden" animate="visible">
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, 160px)",
-                gap: 1.5,
-                justifyContent: "center",
-              }}
-            >
-              <AnimatePresence>
-                {(isReorderMode
-                  ? reorderList
-                      .map((sceneId) => sceneMap.get(sceneId))
-                      .filter((scene): scene is SceneSummary => !!scene)
-                  : orderedScenes
-                ).map((scene) => {
-                  const isExecuting = !!executingById[scene.sceneId];
-                  const sceneError = executionErrorById[scene.sceneId];
-                  return (
-                    <motion.div key={scene.sceneId} variants={itemVariants} layout>
-                      <Box
-                        sx={{
-                          position: "relative",
-                          opacity: draggingId === scene.sceneId ? 0.5 : 1,
-                          transition: "opacity 0.2s ease",
-                          outline: dragOverId === scene.sceneId ? "2px solid" : "none",
-                          outlineColor: "primary.main",
-                          outlineOffset: "2px",
-                          borderRadius: 2,
-                        }}
-                        draggable={isReorderMode}
-                        onDragStart={isReorderMode ? handleDragStart(scene.sceneId) : undefined}
-                        onDragOver={isReorderMode ? handleDragOver(scene.sceneId) : undefined}
-                        onDragLeave={isReorderMode ? handleDragLeave : undefined}
-                        onDrop={isReorderMode ? handleDrop(scene.sceneId) : undefined}
-                        onDragEnd={isReorderMode ? handleDragEnd : undefined}
-                      >
-                        {isReorderMode && (
-                          <IconButton
-                            size="small"
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onDragCancel={handleDragCancel}
+          >
+            <motion.div variants={containerVariants} initial="hidden" animate="visible">
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, 160px)",
+                  gap: 1.5,
+                  justifyContent: "center",
+                }}
+              >
+                <AnimatePresence>
+                  {isReorderMode ? (
+                    <SortableContext items={reorderList} strategy={rectSortingStrategy}>
+                      {reorderList
+                        .map((sceneId) => sceneMap.get(sceneId))
+                        .filter((scene): scene is SceneSummary => !!scene)
+                        .map((scene) => {
+                          const isExecuting = !!executingById[scene.sceneId];
+                          const sceneError = executionErrorById[scene.sceneId];
+                          return (
+                            <motion.div key={scene.sceneId} variants={itemVariants} layout>
+                              <SortableSceneCard
+                                scene={scene}
+                                isExecuting={isExecuting}
+                                sceneError={sceneError}
+                              />
+                            </motion.div>
+                          );
+                        })}
+                    </SortableContext>
+                  ) : (
+                    orderedScenes.map((scene) => {
+                      const isExecuting = !!executingById[scene.sceneId];
+                      const sceneError = executionErrorById[scene.sceneId];
+                      return (
+                        <motion.div key={scene.sceneId} variants={itemVariants} layout>
+                          <Box
                             sx={{
-                              position: "absolute",
-                              top: 8,
-                              right: 8,
-                              bgcolor: "background.paper",
-                              boxShadow: 1,
-                              pointerEvents: "none",
+                              position: "relative",
+                              opacity: draggingId === scene.sceneId ? 0.5 : 1,
+                              transition: "opacity 0.2s ease",
+                              borderRadius: 2,
                             }}
-                            aria-label={t("Reorder")}
                           >
-                            <DragIndicatorIcon fontSize="small" />
-                          </IconButton>
-                        )}
-                        <Button
-                          variant="contained"
-                          onClick={() => handleExecute(scene.sceneId)}
-                          disabled={!isTokenValid || isExecuting || isReorderMode}
-                          sx={{
-                            position: "relative",
-                            height: 50,
-                            width: "100%",
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            p: 1,
-                            borderRadius: 2,
-                            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                            "&:hover:not(:disabled)": {
-                              transform: "translateY(-2px)",
-                              boxShadow: (theme) =>
-                                theme.palette.mode === "dark"
-                                  ? "0 4px 12px rgba(100, 181, 246, 0.25)"
-                                  : "0 4px 12px rgba(25, 118, 210, 0.25)",
-                            },
-                          }}
-                        >
-                          {isExecuting ? (
-                            <>
-                              <CircularProgress size={16} sx={{ color: "inherit", mb: 0.5 }} />
-                              <Typography variant="caption" sx={{ fontSize: "0.7rem" }}>
-                                {t("Executing...")}
-                              </Typography>
-                            </>
-                          ) : (
-                            <Typography
-                              variant="body2"
-                              fontWeight={600}
-                              noWrap
+                            <Button
+                              variant="contained"
+                              onClick={() => handleExecute(scene.sceneId)}
+                              disabled={!isTokenValid || isExecuting || isReorderMode}
                               sx={{
-                                textAlign: "center",
+                                position: "relative",
+                                height: 50,
                                 width: "100%",
-                                px: 0.5,
-                                fontSize: "0.85rem",
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                p: 1,
+                                borderRadius: 2,
+                                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                                "&:hover:not(:disabled)": {
+                                  transform: "translateY(-2px)",
+                                  boxShadow: (theme) =>
+                                    theme.palette.mode === "dark"
+                                      ? "0 4px 12px rgba(100, 181, 246, 0.25)"
+                                      : "0 4px 12px rgba(25, 118, 210, 0.25)",
+                                },
                               }}
                             >
-                              {scene.sceneName || t("Unnamed Scene")}
-                            </Typography>
-                          )}
-                          {sceneError && (
-                            <Typography
-                              variant="caption"
-                              color="error"
-                              sx={{
-                                position: "absolute",
-                                bottom: 8,
-                                left: 0,
-                                right: 0,
-                                textAlign: "center",
-                                px: 1,
-                              }}
-                            >
-                              Error
-                            </Typography>
-                          )}
-                        </Button>
-                      </Box>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </Box>
-          </motion.div>
+                              {isExecuting ? (
+                                <>
+                                  <CircularProgress size={16} sx={{ color: "inherit", mb: 0.5 }} />
+                                  <Typography variant="caption" sx={{ fontSize: "0.7rem" }}>
+                                    {t("Executing...")}
+                                  </Typography>
+                                </>
+                              ) : (
+                                <Typography
+                                  variant="body2"
+                                  fontWeight={600}
+                                  noWrap
+                                  sx={{
+                                    textAlign: "center",
+                                    width: "100%",
+                                    px: 0.5,
+                                    fontSize: "0.85rem",
+                                  }}
+                                >
+                                  {scene.sceneName || t("Unnamed Scene")}
+                                </Typography>
+                              )}
+                              {sceneError && (
+                                <Typography
+                                  variant="caption"
+                                  color="error"
+                                  sx={{
+                                    position: "absolute",
+                                    bottom: 8,
+                                    left: 0,
+                                    right: 0,
+                                    textAlign: "center",
+                                    px: 1,
+                                  }}
+                                >
+                                  Error
+                                </Typography>
+                              )}
+                            </Button>
+                          </Box>
+                        </motion.div>
+                      );
+                    })
+                  )}
+                </AnimatePresence>
+              </Box>
+            </motion.div>
+          </DndContext>
         </>
       )}
 
