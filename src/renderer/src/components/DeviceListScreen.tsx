@@ -29,6 +29,22 @@ import { useTranslation } from "../useTranslation";
 import SwapVertIcon from "@mui/icons-material/SwapVert";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { AnyDevice } from "../../../api/types";
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // Animation variants
 const containerVariants = {
@@ -68,6 +84,14 @@ export const DeviceListScreen: React.FC<{ onDeviceSelect: (deviceId: string) => 
   const [reorderList, setReorderList] = useState<string[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 6,
+      },
+    })
+  );
 
   const orderedDevices = useMemo(() => {
     const idToDevice = new Map<string, AnyDevice>();
@@ -161,12 +185,11 @@ export const DeviceListScreen: React.FC<{ onDeviceSelect: (deviceId: string) => 
     });
   }, [filteredDevices, isReorderMode]);
 
-  // Enable wheel scrolling during drag
+  // ドラッグ中でもホイールスクロールできるようにする
   useEffect(() => {
     if (!draggingId) return;
 
     const handleWheel = (e: WheelEvent) => {
-      // Allow default wheel behavior (scrolling) during drag
       window.scrollBy(0, e.deltaY);
     };
 
@@ -177,52 +200,31 @@ export const DeviceListScreen: React.FC<{ onDeviceSelect: (deviceId: string) => 
     };
   }, [draggingId]);
 
-  const handleReorder = (visibleOrder: string[]) => {
-    setReorderList(visibleOrder);
-  };
-
-  const moveIdInList = (list: string[], fromId: string, toId: string) => {
-    if (fromId === toId) return list;
-    const fromIndex = list.indexOf(fromId);
-    const toIndex = list.indexOf(toId);
-    if (fromIndex === -1 || toIndex === -1) return list;
-    const next = [...list];
-    next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, fromId);
-    return next;
-  };
-
-  const handleDragStart = (id: string) => (event: React.DragEvent<HTMLDivElement>) => {
-    setDraggingId(id);
+  const handleDragStart = (event: DragStartEvent) => {
+    setDraggingId(event.active.id as string);
     setDragOverId(null);
-    event.dataTransfer.effectAllowed = "move";
   };
 
-  const handleDragOver = (overId: string) => (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    if (!draggingId || draggingId === overId) return;
-
-    // Only track hover state, don't update the list during drag
+  const handleDragOver = (event: DragOverEvent) => {
+    const overId = event.over?.id as string | undefined;
+    if (!overId) return;
     setDragOverId(overId);
   };
 
-  const handleDragLeave = () => {
-    setDragOverId(null);
-  };
-
-  const handleDrop = (overId: string) => (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-
-    if (draggingId && overId && draggingId !== overId) {
-      // Update the list only once on drop
-      setReorderList((prev) => moveIdInList(prev, draggingId, overId));
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setReorderList((prev) => {
+        const oldIndex = prev.indexOf(active.id as string);
+        const newIndex = prev.indexOf(over.id as string);
+        if (oldIndex === -1 || newIndex === -1) return prev;
+        const next = [...prev];
+        next.splice(oldIndex, 1);
+        next.splice(newIndex, 0, active.id as string);
+        return next;
+      });
     }
 
-    setDraggingId(null);
-    setDragOverId(null);
-  };
-
-  const handleDragEnd = () => {
     setDraggingId(null);
     setDragOverId(null);
   };
@@ -249,6 +251,10 @@ export const DeviceListScreen: React.FC<{ onDeviceSelect: (deviceId: string) => 
       startReorder();
     }
   };
+
+  const sortableItems = isReorderMode
+    ? reorderList.map((deviceId) => filteredDeviceMap.get(deviceId)).filter((device): device is AnyDevice => !!device)
+    : filteredDevices;
 
   if (!apiTokenSet) {
     return (
@@ -322,64 +328,90 @@ export const DeviceListScreen: React.FC<{ onDeviceSelect: (deviceId: string) => 
         </Box>
       )}
 
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        <Box sx={gridSx}>
-          <AnimatePresence>
-            {(isReorderMode
-              ? reorderList
-                .map((deviceId) => filteredDeviceMap.get(deviceId))
-                .filter((device): device is AnyDevice => !!device)
-              : filteredDevices
-            ).map((device) => (
-              <motion.div variants={itemVariants} layout key={device.deviceId}>
-                <Box
-                  sx={{
-                    position: "relative",
-                    opacity: draggingId === device.deviceId ? 0.5 : 1,
-                    transition: "opacity 0.2s ease",
-                    outline: dragOverId === device.deviceId ? "2px solid" : "none",
-                    outlineColor: "primary.main",
-                    outlineOffset: "2px",
-                    borderRadius: 2,
-                  }}
-                  draggable={isReorderMode}
-                  onDragStart={isReorderMode ? handleDragStart(device.deviceId) : undefined}
-                  onDragOver={isReorderMode ? handleDragOver(device.deviceId) : undefined}
-                  onDragLeave={isReorderMode ? handleDragLeave : undefined}
-                  onDrop={isReorderMode ? handleDrop(device.deviceId) : undefined}
-                  onDragEnd={isReorderMode ? handleDragEnd : undefined}
-                >
-                  {isReorderMode && (
-                    <IconButton
-                      size="small"
-                      sx={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        bgcolor: "background.paper",
-                        boxShadow: 1,
-                        pointerEvents: "none",
-                      }}
-                      aria-label={t("Reorder")}
-                    >
-                      <DragIndicatorIcon fontSize="small" />
-                    </IconButton>
-                  )}
-                  <DeviceCard
-                    device={device}
-                    status={statusMap[device.deviceId]}
-                    onSelect={onDeviceSelect}
-                  />
-                </Box>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </Box>
+      <motion.div variants={containerVariants} initial="hidden" animate="visible">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={isReorderMode ? handleDragStart : undefined}
+          onDragOver={isReorderMode ? handleDragOver : undefined}
+          onDragEnd={isReorderMode ? handleDragEnd : undefined}
+        >
+          <SortableContext
+            items={sortableItems.map((device) => device.deviceId)}
+            strategy={rectSortingStrategy}
+          >
+            <Box sx={gridSx}>
+              <AnimatePresence>
+                {sortableItems.map((device) => (
+                  <motion.div variants={itemVariants} layout key={device.deviceId}>
+                    <SortableDeviceCard
+                      device={device}
+                      status={statusMap[device.deviceId]}
+                      onSelect={onDeviceSelect}
+                      isReorderMode={isReorderMode}
+                      isDragging={draggingId === device.deviceId}
+                      isOver={dragOverId === device.deviceId}
+                      translationDisabled={!isReorderMode}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </Box>
+          </SortableContext>
+        </DndContext>
       </motion.div>
     </Container>
+  );
+};
+
+const SortableDeviceCard: React.FC<{
+  device: AnyDevice;
+  status?: Record<string, any>;
+  onSelect: (deviceId: string) => void;
+  isReorderMode: boolean;
+  isDragging: boolean;
+  isOver: boolean;
+  translationDisabled: boolean;
+}> = ({ device, status, onSelect, isReorderMode, isDragging, isOver, translationDisabled }) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isSorting } = useSortable({ id: device.deviceId });
+
+  const style = {
+    transform: translationDisabled ? undefined : CSS.Transform.toString(transform),
+    transition: translationDisabled ? undefined : transition,
+  };
+
+  return (
+    <Box ref={setNodeRef} style={style} {...(isReorderMode ? { ...attributes, ...listeners } : {})}>
+      <Box
+        sx={{
+          position: "relative",
+          opacity: isDragging || isSorting ? 0.5 : 1,
+          transition: "opacity 0.2s ease",
+          outline: isOver ? "2px solid" : "none",
+          outlineColor: "primary.main",
+          outlineOffset: "2px",
+          borderRadius: 2,
+          cursor: isReorderMode ? "grab" : "default",
+        }}
+      >
+        {isReorderMode && (
+          <IconButton
+            size="small"
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              bgcolor: "background.paper",
+              boxShadow: 1,
+              pointerEvents: "none",
+            }}
+            aria-label="並び替え"
+          >
+            <DragIndicatorIcon fontSize="small" />
+          </IconButton>
+        )}
+        <DeviceCard device={device} status={status} onSelect={onSelect} />
+      </Box>
+    </Box>
   );
 };
