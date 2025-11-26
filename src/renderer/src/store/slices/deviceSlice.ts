@@ -22,6 +22,8 @@ export interface SelectedDeviceStatusState {
 }
 
 export interface CombinedDeviceState extends DeviceListState {
+  deviceOrder: string[];
+  deviceOrderLoaded: boolean;
   selectedDevice: SelectedDeviceStatusState;
   commandSending: boolean;
   commandError: string | null;
@@ -37,6 +39,8 @@ const initialState: CombinedDeviceState = {
   error: null,
   lastFetched: null,
   deviceStatuses: {},
+  deviceOrder: [],
+  deviceOrderLoaded: false,
   selectedDevice: {
     status: null,
     isLoading: false,
@@ -73,6 +77,52 @@ const decrementCommandCounter = (state: CombinedDeviceState, deviceId: string | 
   }
   recomputeCommandSendingFlag(state);
 };
+
+const DEVICE_ORDER_STORAGE_KEY = "deviceOrder";
+
+const persistDeviceOrder = (order: string[]) => {
+  try {
+    void window.electronStore.set(DEVICE_ORDER_STORAGE_KEY, order);
+  } catch (error) {
+    console.error("Failed to persist device order:", error);
+  }
+};
+
+const applyDeviceOrder = (devices: AnyDevice[], desiredOrder: string[]) => {
+  const idToDevice = new Map(devices.map((device) => [device.deviceId, device]));
+  const seen = new Set<string>();
+  const orderedDevices: AnyDevice[] = [];
+
+  desiredOrder.forEach((id) => {
+    const device = idToDevice.get(id);
+    if (device && !seen.has(id)) {
+      orderedDevices.push(device);
+      seen.add(id);
+    }
+  });
+
+  devices.forEach((device) => {
+    if (!seen.has(device.deviceId)) {
+      orderedDevices.push(device);
+      seen.add(device.deviceId);
+    }
+  });
+
+  const normalizedOrder = orderedDevices.map((device) => device.deviceId);
+  return { orderedDevices, normalizedOrder };
+};
+
+export const loadDeviceOrder = createAsyncThunk("devices/loadDeviceOrder", async () => {
+  try {
+    const stored = await window.electronStore.get(DEVICE_ORDER_STORAGE_KEY);
+    if (Array.isArray(stored)) {
+      return stored.filter((value): value is string => typeof value === "string");
+    }
+  } catch (error) {
+    console.error("Failed to load device order from store:", error);
+  }
+  return [];
+});
 
 export const fetchDevices = createAsyncThunk(
   "devices/fetchDevices",
@@ -248,6 +298,11 @@ export const deviceSlice = createSlice({
         }
       }
     },
+    setDeviceOrder: (state, action: PayloadAction<string[]>) => {
+      state.deviceOrder = action.payload;
+      state.deviceOrderLoaded = true;
+      persistDeviceOrder(state.deviceOrder);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -341,6 +396,15 @@ export const deviceSlice = createSlice({
         state.isPollingStatus = false;
         console.error("Polling all device statuses failed:", action.payload);
       });
+
+    builder
+      .addCase(loadDeviceOrder.fulfilled, (state, action: PayloadAction<string[]>) => {
+        state.deviceOrderLoaded = true;
+        state.deviceOrder = action.payload;
+      })
+      .addCase(loadDeviceOrder.rejected, (state) => {
+        state.deviceOrderLoaded = true;
+      });
   },
 });
 
@@ -354,6 +418,7 @@ export const {
   clearCommandError,
   clearDeviceCommandError,
   updateDeviceInList,
+  setDeviceOrder,
 } = deviceSlice.actions;
 export const selectAllDevices = (state: RootState) => state.devices.devices;
 export const selectDeviceByIdFromList = (state: RootState, deviceId: string) =>
@@ -374,5 +439,7 @@ export const selectIsPollingStatus = (state: RootState) => state.devices.isPolli
 export const selectInfraredRemotes = (state: RootState) => state.devices.remoteDevices;
 export const selectDeviceStatusMap = (state: RootState) => state.devices.deviceStatuses;
 export const selectDeviceStatusById = (state: RootState, deviceId: string) => state.devices.deviceStatuses[deviceId];
+export const selectDeviceOrderLoaded = (state: RootState) => state.devices.deviceOrderLoaded;
+export const selectDeviceOrder = (state: RootState) => state.devices.deviceOrder;
 
 export default deviceSlice.reducer;

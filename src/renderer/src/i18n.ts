@@ -27,6 +27,10 @@ const en: Dictionary = {
   // Device list
   "Device List": "Device List",
   Refresh: "Refresh",
+  Reorder: "Reorder",
+  Done: "Done",
+  "Drag cards by the handle to reorder. Press Done to save.":
+    "Drag cards by the handle to reorder. Press Done to save.",
   "Loading devices...": "Loading devices...",
   "API Token not set. Please configure your API credentials in the Settings screen.":
     "API Token not set. Please configure your API credentials in the Settings screen.",
@@ -147,6 +151,10 @@ const ja: Dictionary = {
   // Device list
   "Device List": "デバイス一覧",
   Refresh: "再読み込み",
+  Reorder: "並べ替え",
+  Done: "完了",
+  "Drag cards by the handle to reorder. Press Done to save.":
+    "ハンドルをドラッグして順番を入れ替え、完了で保存します。",
   "Loading devices...": "デバイスを読み込み中...",
   "API Token not set. Please configure your API credentials in the Settings screen.":
     "API トークンが設定されていません。「設定」画面で API 認証情報を設定してください。",
