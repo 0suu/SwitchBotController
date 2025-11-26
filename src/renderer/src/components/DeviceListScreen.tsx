@@ -161,6 +161,22 @@ export const DeviceListScreen: React.FC<{ onDeviceSelect: (deviceId: string) => 
     });
   }, [filteredDevices, isReorderMode]);
 
+  // Enable wheel scrolling during drag
+  useEffect(() => {
+    if (!draggingId) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Allow default wheel behavior (scrolling) during drag
+      window.scrollBy(0, e.deltaY);
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: true });
+
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+    };
+  }, [draggingId]);
+
   const handleReorder = (visibleOrder: string[]) => {
     setReorderList(visibleOrder);
   };
