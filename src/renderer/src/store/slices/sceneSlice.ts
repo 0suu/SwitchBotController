@@ -11,7 +11,19 @@ export interface ScenesState {
   executionErrorById: Record<string, string | undefined>;
   lastFetched: number | null;
   lastExecutedSceneId: string | null;
+  sceneOrder: string[];
+  sceneOrderLoaded: boolean;
 }
+
+const SCENE_ORDER_STORAGE_KEY = "sceneOrder";
+
+const persistSceneOrder = (order: string[]) => {
+  try {
+    void window.electronStore.set(SCENE_ORDER_STORAGE_KEY, order);
+  } catch (error) {
+    console.error("Failed to persist scene order:", error);
+  }
+};
 
 const initialState: ScenesState = {
   scenes: [],
@@ -21,7 +33,21 @@ const initialState: ScenesState = {
   executionErrorById: {},
   lastFetched: null,
   lastExecutedSceneId: null,
+  sceneOrder: [],
+  sceneOrderLoaded: false,
 };
+
+export const loadSceneOrder = createAsyncThunk("scenes/loadSceneOrder", async () => {
+  try {
+    const stored = await window.electronStore.get(SCENE_ORDER_STORAGE_KEY);
+    if (Array.isArray(stored)) {
+      return stored.filter((value): value is string => typeof value === "string");
+    }
+  } catch (error) {
+    console.error("Failed to load scene order from store:", error);
+  }
+  return [];
+});
 
 export const fetchScenes = createAsyncThunk("scenes/fetchScenes", async (_, { getState, rejectWithValue }) => {
   const { settings } = getState() as RootState;
@@ -78,6 +104,11 @@ const scenesSlice = createSlice({
     clearScenesState: () => ({
       ...initialState,
     }),
+    setSceneOrder: (state, action: PayloadAction<string[]>) => {
+      state.sceneOrder = action.payload;
+      state.sceneOrderLoaded = true;
+      persistSceneOrder(state.sceneOrder);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -120,10 +151,19 @@ const scenesSlice = createSlice({
         }
         state.lastExecutedSceneId = null;
       });
+
+    builder
+      .addCase(loadSceneOrder.fulfilled, (state, action: PayloadAction<string[]>) => {
+        state.sceneOrderLoaded = true;
+        state.sceneOrder = action.payload;
+      })
+      .addCase(loadSceneOrder.rejected, (state) => {
+        state.sceneOrderLoaded = true;
+      });
   },
 });
 
-export const { clearSceneErrors, clearSceneExecutionError, clearScenesState } = scenesSlice.actions;
+export const { clearSceneErrors, clearSceneExecutionError, clearScenesState, setSceneOrder } = scenesSlice.actions;
 
 export const selectScenes = (state: RootState) => state.scenes.scenes;
 export const selectScenesLoading = (state: RootState) => state.scenes.isLoading;
@@ -132,5 +172,7 @@ export const selectSceneIsExecuting = (state: RootState, sceneId: string) => !!s
 export const selectSceneExecutionError = (state: RootState, sceneId: string) =>
   state.scenes.executionErrorById[sceneId] || null;
 export const selectLastExecutedSceneId = (state: RootState) => state.scenes.lastExecutedSceneId;
+export const selectSceneOrderLoaded = (state: RootState) => state.scenes.sceneOrderLoaded;
+export const selectSceneOrder = (state: RootState) => state.scenes.sceneOrder;
 
 export default scenesSlice.reducer;

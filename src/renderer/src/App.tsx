@@ -26,7 +26,8 @@ import {
   testApiCredentials,
   selectTheme,
 } from "./store/slices/settingsSlice";
-import { pollAllDeviceStatuses, selectAllDevices } from "./store/slices/deviceSlice"; // Added pollAllDeviceStatuses
+import { loadDeviceOrder, pollAllDeviceStatuses, selectAllDevices } from "./store/slices/deviceSlice"; // Added pollAllDeviceStatuses
+import { loadSceneOrder } from "./store/slices/sceneSlice";
 import { useTranslation } from "./useTranslation";
 
 type View = "list" | "detail" | "settings" | "scenes";
@@ -55,6 +56,8 @@ function App() {
 
   useEffect(() => {
     dispatch(loadApiCredentials());
+    dispatch(loadDeviceOrder());
+    dispatch(loadSceneOrder());
   }, [dispatch]);
 
   // Restore the last opened top-level view on startup.

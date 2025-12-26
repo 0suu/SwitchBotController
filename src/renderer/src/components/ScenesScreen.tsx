@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
@@ -7,6 +7,10 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import Snackbar from "@mui/material/Snackbar";
+import IconButton from "@mui/material/IconButton";
+import SwapVertIcon from "@mui/icons-material/SwapVert";
+import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { AppDispatch, RootState } from "../store/store";
 import { useTranslation } from "../useTranslation";
@@ -19,7 +23,33 @@ import {
   selectScenesError,
   selectLastExecutedSceneId,
   clearScenesState,
+  selectSceneOrder,
+  setSceneOrder,
 } from "../store/slices/sceneSlice";
+import { SceneSummary } from "../../../api/types";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.03,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring" as const,
+      stiffness: 260,
+      damping: 20,
+    },
+  },
+};
 
 export const ScenesScreen: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
@@ -33,6 +63,41 @@ export const ScenesScreen: React.FC = () => {
   const executingById = useSelector((state: RootState) => state.scenes.executingById);
   const executionErrorById = useSelector((state: RootState) => state.scenes.executionErrorById);
   const [successOpen, setSuccessOpen] = useState(false);
+  const sceneOrder = useSelector(selectSceneOrder);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [reorderList, setReorderList] = useState<string[]>([]);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const shouldAnimateLayout = !isReorderMode;
+
+  const orderedScenes: SceneSummary[] = useMemo(() => {
+    const idToScene = new Map<string, SceneSummary>();
+    scenes.forEach((scene) => idToScene.set(scene.sceneId, scene));
+    const seen = new Set<string>();
+    const ordered: SceneSummary[] = [];
+
+    sceneOrder.forEach((id) => {
+      const scene = idToScene.get(id);
+      if (scene && !seen.has(id)) {
+        ordered.push(scene);
+        seen.add(id);
+      }
+    });
+
+    scenes.forEach((scene) => {
+      if (!seen.has(scene.sceneId)) {
+        ordered.push(scene);
+      }
+    });
+
+    return ordered;
+  }, [scenes, sceneOrder]);
+
+  const sceneMap = useMemo(() => {
+    const map = new Map<string, SceneSummary>();
+    orderedScenes.forEach((scene) => map.set(scene.sceneId, scene));
+    return map;
+  }, [orderedScenes]);
 
   useEffect(() => {
     if (isTokenValid && apiToken) {
@@ -47,6 +112,105 @@ export const ScenesScreen: React.FC = () => {
       setSuccessOpen(true);
     }
   }, [lastExecutedSceneId]);
+
+  useEffect(() => {
+    if (isReorderMode && orderedScenes.length === 0) {
+      setIsReorderMode(false);
+      setReorderList([]);
+    }
+  }, [orderedScenes.length, isReorderMode]);
+
+  useEffect(() => {
+    if (!isReorderMode) return;
+    const visibleIds = orderedScenes.map((scene) => scene.sceneId);
+    setReorderList((prev) => {
+      const next = prev.filter((id) => visibleIds.includes(id));
+      visibleIds.forEach((id) => {
+        if (!next.includes(id)) {
+          next.push(id);
+        }
+      });
+      return next;
+    });
+  }, [orderedScenes, isReorderMode]);
+
+  useEffect(() => {
+    if (!draggingId) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      window.scrollBy(0, e.deltaY);
+    };
+
+    window.addEventListener("wheel", handleWheel, { passive: true });
+
+    return () => {
+      window.removeEventListener("wheel", handleWheel);
+    };
+  }, [draggingId]);
+
+  const moveIdInList = (list: string[], fromId: string, toId: string) => {
+    if (fromId === toId) return list;
+    const fromIndex = list.indexOf(fromId);
+    const toIndex = list.indexOf(toId);
+    if (fromIndex === -1 || toIndex === -1) return list;
+    const next = [...list];
+    next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, fromId);
+    return next;
+  };
+
+  const handleDragStart = (id: string) => (event: React.DragEvent<HTMLDivElement>) => {
+    setDraggingId(id);
+    setDragOverId(null);
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (overId: string) => (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    if (!draggingId || draggingId === overId) return;
+    setDragOverId((current) => (current === overId ? current : overId));
+  };
+
+  const handleDragLeave = () => {
+    setDragOverId(null);
+  };
+
+  const handleDrop = (overId: string) => (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    if (draggingId && overId && draggingId !== overId) {
+      setReorderList((prev) => moveIdInList(prev, draggingId, overId));
+    }
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDragOverId(null);
+  };
+
+  const startReorder = () => {
+    setReorderList(orderedScenes.map((scene) => scene.sceneId));
+    setIsReorderMode(true);
+  };
+
+  const finishReorder = () => {
+    const currentOrder = orderedScenes.map((scene) => scene.sceneId);
+    const mergedOrder =
+      reorderList.length > 0
+        ? [...reorderList, ...currentOrder.filter((id) => !reorderList.includes(id))]
+        : currentOrder;
+    dispatch(setSceneOrder(mergedOrder));
+    setIsReorderMode(false);
+  };
+
+  const toggleReorderMode = () => {
+    if (isReorderMode) {
+      finishReorder();
+    } else {
+      startReorder();
+    }
+  };
 
   const handleRefresh = () => {
     if (isTokenValid && apiToken) {
@@ -76,15 +240,38 @@ export const ScenesScreen: React.FC = () => {
         <Typography variant="h4" gutterBottom component="div">
           {t("Scenes")}
         </Typography>
-        <Button variant="outlined" onClick={handleRefresh} disabled={isLoading || !isTokenValid}>
-          {t("Refresh")}
-        </Button>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button
+            variant={isReorderMode ? "contained" : "outlined"}
+            color="primary"
+            startIcon={<SwapVertIcon />}
+            onClick={toggleReorderMode}
+            disabled={orderedScenes.length === 0 || isLoading}
+            sx={{ px: 2.5, py: 1 }}
+          >
+            {isReorderMode ? t("Done") : t("Reorder")}
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleRefresh}
+            disabled={isLoading || !isTokenValid}
+            sx={{ px: 3, py: 1 }}
+          >
+            {t("Refresh")}
+          </Button>
+        </Box>
       </Box>
 
       {!isTokenValid && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {t("API credentials are set but not validated. Please test them in Settings.")}
         </Alert>
+      )}
+
+      {isReorderMode && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {t("Drag cards by the handle to reorder. Press Done to save.")}
+        </Typography>
       )}
 
       {error && (
@@ -103,83 +290,129 @@ export const ScenesScreen: React.FC = () => {
           {!error && isTokenValid && scenes.length === 0 && (
             <Alert severity="info">{t("No scenes found. Create a manual scene in the SwitchBot app.")}</Alert>
           )}
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, 160px)",
-              gap: 1.5,
-              justifyContent: "center",
-            }}
-          >
-            {scenes.map((scene) => {
-              const isExecuting = !!executingById[scene.sceneId];
-              const sceneError = executionErrorById[scene.sceneId];
-              return (
-                <Button
-                  key={scene.sceneId}
-                  variant="contained"
-                  onClick={() => handleExecute(scene.sceneId)}
-                  disabled={!isTokenValid || isExecuting}
-                  sx={{
-                    position: "relative",
-                    height: 50,
-                    width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    p: 1,
-                    borderRadius: 2,
-                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                    "&:hover:not(:disabled)": {
-                      transform: "translateY(-2px)",
-                      boxShadow: (theme) =>
-                        theme.palette.mode === "dark"
-                          ? "0 4px 12px rgba(100, 181, 246, 0.25)"
-                          : "0 4px 12px rgba(25, 118, 210, 0.25)",
-                    },
-                  }}
-                >
-                  {isExecuting ? (
-                    <>
-                      <CircularProgress size={16} sx={{ color: "inherit", mb: 0.5 }} />
-                      <Typography variant="caption" sx={{ fontSize: "0.7rem" }}>{t("Executing...")}</Typography>
-                    </>
-                  ) : (
-                    <Typography
-                      variant="body2"
-                      fontWeight={600}
-                      noWrap
-                      sx={{
-                        textAlign: "center",
-                        width: "100%",
-                        px: 0.5,
-                        fontSize: "0.85rem"
-                      }}
-                    >
-                      {scene.sceneName || t("Unnamed Scene")}
-                    </Typography>
-                  )}
-                  {sceneError && (
-                    <Typography
-                      variant="caption"
-                      color="error"
-                      sx={{
-                        position: "absolute",
-                        bottom: 8,
-                        left: 0,
-                        right: 0,
-                        textAlign: "center",
-                        px: 1,
-                      }}
-                    >
-                      Error
-                    </Typography>
-                  )}
-                </Button>
-              );
-            })}
-          </Box>
+          <motion.div variants={containerVariants} initial="hidden" animate="visible">
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, 160px)",
+                gap: 1.5,
+                justifyContent: "center",
+              }}
+            >
+              <AnimatePresence>
+                {(isReorderMode
+                  ? reorderList
+                      .map((sceneId) => sceneMap.get(sceneId))
+                      .filter((scene): scene is SceneSummary => !!scene)
+                  : orderedScenes
+                ).map((scene) => {
+                  const isExecuting = !!executingById[scene.sceneId];
+                  const sceneError = executionErrorById[scene.sceneId];
+                  return (
+                    <motion.div key={scene.sceneId} variants={itemVariants} layout={shouldAnimateLayout}>
+                      <Box
+                        sx={{
+                          position: "relative",
+                          opacity: draggingId === scene.sceneId ? 0.5 : 1,
+                          transition: "opacity 0.2s ease",
+                          outline: dragOverId === scene.sceneId ? "2px solid" : "none",
+                          outlineColor: "primary.main",
+                          outlineOffset: "2px",
+                          borderRadius: 2,
+                        }}
+                        draggable={isReorderMode}
+                        onDragStart={isReorderMode ? handleDragStart(scene.sceneId) : undefined}
+                        onDragOver={isReorderMode ? handleDragOver(scene.sceneId) : undefined}
+                        onDragLeave={isReorderMode ? handleDragLeave : undefined}
+                        onDrop={isReorderMode ? handleDrop(scene.sceneId) : undefined}
+                        onDragEnd={isReorderMode ? handleDragEnd : undefined}
+                      >
+                        {isReorderMode && (
+                          <IconButton
+                            size="small"
+                            sx={{
+                              position: "absolute",
+                              top: 8,
+                              right: 8,
+                              bgcolor: "background.paper",
+                              boxShadow: 1,
+                              pointerEvents: "none",
+                            }}
+                            aria-label={t("Reorder")}
+                          >
+                            <DragIndicatorIcon fontSize="small" />
+                          </IconButton>
+                        )}
+                        <Button
+                          variant="contained"
+                          onClick={() => handleExecute(scene.sceneId)}
+                          disabled={!isTokenValid || isExecuting || isReorderMode}
+                          sx={{
+                            position: "relative",
+                            height: 50,
+                            width: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            p: 1,
+                            borderRadius: 2,
+                            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                            "&:hover:not(:disabled)": {
+                              transform: "translateY(-2px)",
+                              boxShadow: (theme) =>
+                                theme.palette.mode === "dark"
+                                  ? "0 4px 12px rgba(100, 181, 246, 0.25)"
+                                  : "0 4px 12px rgba(25, 118, 210, 0.25)",
+                            },
+                          }}
+                        >
+                          {isExecuting ? (
+                            <>
+                              <CircularProgress size={16} sx={{ color: "inherit", mb: 0.5 }} />
+                              <Typography variant="caption" sx={{ fontSize: "0.7rem" }}>
+                                {t("Executing...")}
+                              </Typography>
+                            </>
+                          ) : (
+                            <Typography
+                              variant="body2"
+                              fontWeight={600}
+                              noWrap
+                              sx={{
+                                textAlign: "center",
+                                width: "100%",
+                                px: 0.5,
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              {scene.sceneName || t("Unnamed Scene")}
+                            </Typography>
+                          )}
+                          {sceneError && (
+                            <Typography
+                              variant="caption"
+                              color="error"
+                              sx={{
+                                position: "absolute",
+                                bottom: 8,
+                                left: 0,
+                                right: 0,
+                                textAlign: "center",
+                                px: 1,
+                              }}
+                            >
+                              Error
+                            </Typography>
+                          )}
+                        </Button>
+                      </Box>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </Box>
+          </motion.div>
         </>
       )}
 
