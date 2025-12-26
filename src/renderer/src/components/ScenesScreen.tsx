@@ -68,6 +68,7 @@ export const ScenesScreen: React.FC = () => {
   const [reorderList, setReorderList] = useState<string[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const shouldAnimateLayout = !isReorderMode;
 
   const orderedScenes: SceneSummary[] = useMemo(() => {
     const idToScene = new Map<string, SceneSummary>();
@@ -158,10 +159,6 @@ export const ScenesScreen: React.FC = () => {
     return next;
   };
 
-  const handleReorder = (visibleOrder: string[]) => {
-    setReorderList(visibleOrder);
-  };
-
   const handleDragStart = (id: string) => (event: React.DragEvent<HTMLDivElement>) => {
     setDraggingId(id);
     setDragOverId(null);
@@ -171,7 +168,7 @@ export const ScenesScreen: React.FC = () => {
   const handleDragOver = (overId: string) => (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     if (!draggingId || draggingId === overId) return;
-    setDragOverId(overId);
+    setDragOverId((current) => (current === overId ? current : overId));
   };
 
   const handleDragLeave = () => {
@@ -312,7 +309,7 @@ export const ScenesScreen: React.FC = () => {
                   const isExecuting = !!executingById[scene.sceneId];
                   const sceneError = executionErrorById[scene.sceneId];
                   return (
-                    <motion.div key={scene.sceneId} variants={itemVariants} layout>
+                    <motion.div key={scene.sceneId} variants={itemVariants} layout={shouldAnimateLayout}>
                       <Box
                         sx={{
                           position: "relative",

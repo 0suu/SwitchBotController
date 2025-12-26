@@ -68,6 +68,7 @@ export const DeviceListScreen: React.FC<{ onDeviceSelect: (deviceId: string) => 
   const [reorderList, setReorderList] = useState<string[]>([]);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const shouldAnimateLayout = !isReorderMode;
 
   const orderedDevices = useMemo(() => {
     const idToDevice = new Map<string, AnyDevice>();
@@ -177,10 +178,6 @@ export const DeviceListScreen: React.FC<{ onDeviceSelect: (deviceId: string) => 
     };
   }, [draggingId]);
 
-  const handleReorder = (visibleOrder: string[]) => {
-    setReorderList(visibleOrder);
-  };
-
   const moveIdInList = (list: string[], fromId: string, toId: string) => {
     if (fromId === toId) return list;
     const fromIndex = list.indexOf(fromId);
@@ -203,7 +200,7 @@ export const DeviceListScreen: React.FC<{ onDeviceSelect: (deviceId: string) => 
     if (!draggingId || draggingId === overId) return;
 
     // Only track hover state, don't update the list during drag
-    setDragOverId(overId);
+    setDragOverId((current) => (current === overId ? current : overId));
   };
 
   const handleDragLeave = () => {
@@ -335,7 +332,7 @@ export const DeviceListScreen: React.FC<{ onDeviceSelect: (deviceId: string) => 
                 .filter((device): device is AnyDevice => !!device)
               : filteredDevices
             ).map((device) => (
-              <motion.div variants={itemVariants} layout key={device.deviceId}>
+              <motion.div variants={itemVariants} layout={shouldAnimateLayout} key={device.deviceId}>
                 <Box
                   sx={{
                     position: "relative",
