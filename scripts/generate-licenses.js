@@ -1,9 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
-const checker = require('license-checker-rseidelsohn');
-
-const init = util.promisify(checker.init);
+const loadChecker = async () => {
+  const checkerModule = await import('license-checker-rseidelsohn');
+  return checkerModule.default || checkerModule;
+};
 const projectRoot = path.resolve(__dirname, '..');
 const outputDir = path.join(projectRoot, 'build', 'licenses');
 const outputFile = path.join(outputDir, 'THIRD_PARTY_LICENSES.txt');
@@ -43,6 +44,8 @@ function formatPackage(pkgName, info) {
 
 async function main() {
   const skipSelf = packageJson.name && packageJson.version ? `${packageJson.name}@${packageJson.version}` : null;
+  const checker = await loadChecker();
+  const init = util.promisify(checker.init);
   const packages = await init({
     start: projectRoot,
     production: true,
