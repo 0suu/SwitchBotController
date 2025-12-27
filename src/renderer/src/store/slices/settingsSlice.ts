@@ -2,6 +2,7 @@
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { RootState } from "../store";
 import { switchBotApi } from "../../../../api/apiClient"; // Adjust path as needed
+import { isMockMode } from "../../../../appMode";
 
 export interface SettingsState {
   apiToken: string | null;
@@ -14,21 +15,33 @@ export interface SettingsState {
   language: "en" | "ja";
 }
 
+const mockDefaults = {
+  token: "mock-token",
+  secret: "mock-secret",
+  validationMessage: "Mock mode: SwitchBot API calls are simulated.",
+};
+
 const initialState: SettingsState = {
-  apiToken: null,
-  apiSecret: null,
-  isTokenValidated: false,
-  validationMessage: null,
-  pollingIntervalSeconds: 60,
+  apiToken: isMockMode ? mockDefaults.token : null,
+  apiSecret: isMockMode ? mockDefaults.secret : null,
+  isTokenValidated: isMockMode,
+  validationMessage: isMockMode ? mockDefaults.validationMessage : null,
+  pollingIntervalSeconds: isMockMode ? 30 : 60,
   theme: "system",
   logRetentionDays: 7,
-   language: "en",
+  language: "en",
 };
 
 // Thunk to load credentials from electron-store
 export const loadApiCredentials = createAsyncThunk(
   "settings/loadApiCredentials",
   async (_, { dispatch }) => {
+    if (isMockMode) {
+      dispatch(setApiCredentials({ token: mockDefaults.token, secret: mockDefaults.secret }));
+      dispatch(setTokenValidated(true));
+      dispatch(setValidationMessage(mockDefaults.validationMessage));
+      return { token: mockDefaults.token, secret: mockDefaults.secret };
+    }
     try {
       const token = await window.electronStore.get("apiToken");
       const secret = await window.electronStore.get("apiSecret");
@@ -62,6 +75,12 @@ export const loadApiCredentials = createAsyncThunk(
 export const saveApiCredentials = createAsyncThunk(
   "settings/saveApiCredentials",
   async (payload: { token: string; secret: string }, { dispatch }) => {
+    if (isMockMode) {
+      dispatch(setApiCredentials(payload));
+      dispatch(setTokenValidated(true));
+      dispatch(setValidationMessage(mockDefaults.validationMessage));
+      return payload;
+    }
     try {
       await window.electronStore.set("apiToken", payload.token);
       await window.electronStore.set("apiSecret", payload.secret);
@@ -82,6 +101,11 @@ export const saveApiCredentials = createAsyncThunk(
 export const testApiCredentials = createAsyncThunk(
   "settings/testApiCredentials",
   async (_, { getState, dispatch }) => {
+    if (isMockMode) {
+      dispatch(setTokenValidated(true));
+      dispatch(setValidationMessage(mockDefaults.validationMessage));
+      return { success: true, message: mockDefaults.validationMessage };
+    }
     const { settings } = getState() as RootState;
     if (!settings.apiToken || !settings.apiSecret) {
       dispatch(setTokenValidated(false));
@@ -111,6 +135,12 @@ export const testApiCredentials = createAsyncThunk(
 export const validateAndSaveApiCredentials = createAsyncThunk(
   "settings/validateAndSaveApiCredentials",
   async (payload: { token: string; secret: string }, { getState, dispatch }) => {
+    if (isMockMode) {
+      dispatch(setApiCredentials({ token: payload.token.trim() || mockDefaults.token, secret: payload.secret.trim() || mockDefaults.secret }));
+      dispatch(setTokenValidated(true));
+      dispatch(setValidationMessage(mockDefaults.validationMessage));
+      return { success: true, message: mockDefaults.validationMessage };
+    }
     const token = payload.token.trim();
     const secret = payload.secret.trim();
     const { settings } = getState() as RootState;
@@ -175,6 +205,13 @@ export const settingsSlice = createSlice({
       // state.validationMessage = null;
     },
     clearApiCredentials: (state) => {
+      if (isMockMode) {
+        state.apiToken = mockDefaults.token;
+        state.apiSecret = mockDefaults.secret;
+        state.isTokenValidated = true;
+        state.validationMessage = mockDefaults.validationMessage;
+        return;
+      }
       state.apiToken = null;
       state.apiSecret = null;
       state.isTokenValidated = false;
