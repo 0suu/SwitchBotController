@@ -11,6 +11,7 @@
     "dev:vite": "vite src/renderer --port 5173",
     "dev:electron": "wait-on http://localhost:5173 && npm run build:electron:main && npm run build:electron:preload && electron . --inspect",
     "build": "npm run build:licenses && npm run build:vite && npm run build:electron",
+    "build:web": "cross-env BUILD_TARGET=web VITE_APP_MODE=mock vite build src/renderer",
     "build:licenses": "node scripts/generate-licenses.js",
     "build:vite": "vite build src/renderer",
     "build:electron": "npm run build:electron:main && npm run build:electron:preload",

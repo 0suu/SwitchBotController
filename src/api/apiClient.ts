@@ -6,6 +6,8 @@ import {
   SceneListResponseBody,
   SceneExecuteResponseBody,
 } from "./types"; // Assuming AnyDevice might be useful for command types
+import { isMockMode } from "../appMode";
+import { mockSwitchBotBridge } from "./mockSwitchBotBridge";
 
 // We're no longer using direct Axios requests, so we don't need these imports
 // import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
@@ -27,6 +29,25 @@ export interface CommandResponseBody {
   body: any; // The structure of body can vary
 }
 
+type SwitchBotBridgeResponse<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+
+type SwitchBotBridgeLike = {
+  getDevices: () => Promise<SwitchBotBridgeResponse<any>>;
+  getDeviceStatus: (deviceId: string) => Promise<SwitchBotBridgeResponse<any>>;
+  sendCommand: (
+    deviceId: string,
+    command: string,
+    parameter?: any,
+    commandType?: "command" | "customize"
+  ) => Promise<SwitchBotBridgeResponse<any>>;
+  getScenes: () => Promise<SwitchBotBridgeResponse<any>>;
+  executeScene: (sceneId: string) => Promise<SwitchBotBridgeResponse<any>>;
+};
+
 
 export class SwitchBotAPI {
   private token: string | null = null;
@@ -43,7 +64,17 @@ export class SwitchBotAPI {
   }
 
   isConfigured(): boolean {
-    return !!this.token && !!this.secret;
+    return isMockMode || (!!this.token && !!this.secret);
+  }
+
+  private getBridge(): SwitchBotBridgeLike {
+    if (isMockMode) {
+      return mockSwitchBotBridge as SwitchBotBridgeLike;
+    }
+    if (typeof window !== "undefined" && window.switchBotBridge) {
+      return window.switchBotBridge as unknown as SwitchBotBridgeLike;
+    }
+    throw new Error("SwitchBot bridge is not available.");
   }
 
   async getDevices(): Promise<DeviceListResponseBody> {
@@ -52,10 +83,10 @@ export class SwitchBotAPI {
     }
 
     try {
-      // Use the IPC bridge to communicate with the main process
-      const response = await window.switchBotBridge.getDevices();
+      const bridge = this.getBridge();
+      const response = await bridge.getDevices();
 
-      if (!response.success) {
+      if (!response.success || !response.data) {
         throw new Error(response.error || "Failed to get devices");
       }
 
@@ -76,10 +107,10 @@ export class SwitchBotAPI {
     }
 
     try {
-      // Use the IPC bridge to communicate with the main process
-      const response = await window.switchBotBridge.getDeviceStatus(deviceId);
+      const bridge = this.getBridge();
+      const response = await bridge.getDeviceStatus(deviceId);
 
-      if (!response.success) {
+      if (!response.success || !response.data) {
         throw new Error(response.error || `Failed to get status for device ${deviceId}`);
       }
 
@@ -100,10 +131,10 @@ export class SwitchBotAPI {
     }
 
     try {
-      // Use the IPC bridge to communicate with the main process
-      const response = await window.switchBotBridge.sendCommand(deviceId, command, parameter, commandType);
+      const bridge = this.getBridge();
+      const response = await bridge.sendCommand(deviceId, command, parameter, commandType);
 
-      if (!response.success) {
+      if (!response.success || !response.data) {
         throw new Error(response.error || `Failed to send command to device ${deviceId}`);
       }
 
@@ -124,14 +155,15 @@ export class SwitchBotAPI {
       throw new Error("API token and secret not set.");
     }
 
-    if (!window.switchBotBridge?.getScenes) {
+    if (!this.getBridge()?.getScenes) {
       throw new Error("Scenes API bridge not available. Please restart the app to reload preload.js.");
     }
 
     try {
-      const response = await window.switchBotBridge.getScenes();
+      const bridge = this.getBridge();
+      const response = await bridge.getScenes();
 
-      if (!response.success) {
+      if (!response.success || !response.data) {
         throw new Error(response.error || "Failed to get scenes");
       }
 
@@ -151,14 +183,15 @@ export class SwitchBotAPI {
       throw new Error("API token and secret not set.");
     }
 
-    if (!window.switchBotBridge?.executeScene) {
+    const bridge = this.getBridge();
+    if (!bridge?.executeScene) {
       throw new Error("Scenes API bridge not available. Please restart the app to reload preload.js.");
     }
 
     try {
-      const response = await window.switchBotBridge.executeScene(sceneId);
+      const response = await bridge.executeScene(sceneId);
 
-      if (!response.success) {
+      if (!response.success || !response.data) {
         throw new Error(response.error || `Failed to execute scene ${sceneId}`);
       }
 

@@ -83,6 +83,15 @@ Electron Builder の設定 (`package.json` の `build` フィールド) によ�
 
 依存ライブラリのライセンス一覧は `npm run build:licenses`（`npm run build` 内で自動実行）で `build/licenses/THIRD_PARTY_LICENSES.txt` に生成され、ルートの `LICENSE` と共にインストーラへ同梱されます。依存パッケージを更新した際はこのスクリプトを再実行してください。
 
+### 5. Cloudflare Pages でのプレビュー (モックモード)
+- Git Integration 前提で、renderer 部分だけを静的ホスティングします（Workers/Wrangler でのデプロイは不要です）。
+- Cloudflare Pages のビルド設定例:
+  - **Build command**: `npm ci && npm run build:web`
+  - **Output directory**: `dist`
+  - **Preview 環境変数**: `VITE_APP_MODE=mock`（プレビュー環境のみで指定）
+- `public/_redirects` に SPA 向けのフォールバック (`/*    /index.html   200`) を配置しています。React Router 等での直リンクアクセスが 200 で配信されます。
+- モックモードでは SwitchBot API へのリクエストを行わず、ダミーデータで画面を動作させます（トークン/シークレットはブラウザへ露出しません）。
+
 ## 必要環境
 - Node.js 20 以上推奨（Electron 36 ベース）
 - npm
