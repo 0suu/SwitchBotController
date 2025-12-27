@@ -3,6 +3,7 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { switchBotApi, CommandResponseBody } from "../../../../api/apiClient";
 import { AnyDevice, DeviceListResponseBody, DeviceStatusResponseBody, InfraredRemote } from "../../../../api/types";
 import { RootState } from "../store";
+import { isMockMode } from "../../../../appMode";
 
 export interface DeviceListState {
   devices: AnyDevice[];
@@ -104,15 +105,17 @@ export const fetchDevices = createAsyncThunk(
   "devices/fetchDevices",
   async (_, { getState, dispatch, rejectWithValue }) => {
     const { settings } = getState() as RootState;
-    if (!settings.apiToken || !settings.isTokenValidated) {
-      dispatch(setError("API credentials are not set or not validated. Please check settings."));
-      return rejectWithValue("API credentials are not set or not validated.");
-    }
-    if (settings.apiToken && settings.apiSecret) {
-      switchBotApi.setCredentials(settings.apiToken, settings.apiSecret);
-    } else {
-      dispatch(setError("API token or secret is missing."));
-      return rejectWithValue("API token or secret is missing.");
+    if (!isMockMode) {
+      if (!settings.apiToken || !settings.isTokenValidated) {
+        dispatch(setError("API credentials are not set or not validated. Please check settings."));
+        return rejectWithValue("API credentials are not set or not validated.");
+      }
+      if (settings.apiToken && settings.apiSecret) {
+        switchBotApi.setCredentials(settings.apiToken, settings.apiSecret);
+      } else {
+        dispatch(setError("API token or secret is missing."));
+        return rejectWithValue("API token or secret is missing.");
+      }
     }
 
     try {
@@ -135,15 +138,17 @@ export const fetchDeviceStatus = createAsyncThunk(
   "devices/fetchDeviceStatus",
   async (deviceId: string, { getState, dispatch, rejectWithValue }) => {
     const { settings } = getState() as RootState;
-    if (!settings.apiToken || !settings.isTokenValidated) {
-      dispatch(setSelectedDeviceError({ deviceId, error: "API credentials are not set or not validated." }));
-      return rejectWithValue("API credentials are not set or not validated.");
-    }
-    if (settings.apiToken && settings.apiSecret) {
-      switchBotApi.setCredentials(settings.apiToken, settings.apiSecret);
-    } else {
-      dispatch(setSelectedDeviceError({ deviceId, error: "API token or secret is missing." }));
-      return rejectWithValue("API token or secret is missing.");
+    if (!isMockMode) {
+      if (!settings.apiToken || !settings.isTokenValidated) {
+        dispatch(setSelectedDeviceError({ deviceId, error: "API credentials are not set or not validated." }));
+        return rejectWithValue("API credentials are not set or not validated.");
+      }
+      if (settings.apiToken && settings.apiSecret) {
+        switchBotApi.setCredentials(settings.apiToken, settings.apiSecret);
+      } else {
+        dispatch(setSelectedDeviceError({ deviceId, error: "API token or secret is missing." }));
+        return rejectWithValue("API token or secret is missing.");
+      }
     }
     try {
       const response: DeviceStatusResponseBody = await switchBotApi.getDeviceStatus(deviceId);
@@ -162,13 +167,15 @@ export const sendDeviceCommand = createAsyncThunk(
   ) => {
     const { deviceId, command, parameter, commandType } = payload;
     const { settings, devices } = getState() as RootState;
-    if (!settings.apiToken || !settings.isTokenValidated) {
-      return rejectWithValue("API credentials are not set or not validated.");
-    }
-    if (settings.apiToken && settings.apiSecret) {
-      switchBotApi.setCredentials(settings.apiToken, settings.apiSecret);
-    } else {
-      return rejectWithValue("API token or secret is missing.");
+    if (!isMockMode) {
+      if (!settings.apiToken || !settings.isTokenValidated) {
+        return rejectWithValue("API credentials are not set or not validated.");
+      }
+      if (settings.apiToken && settings.apiSecret) {
+        switchBotApi.setCredentials(settings.apiToken, settings.apiSecret);
+      } else {
+        return rejectWithValue("API token or secret is missing.");
+      }
     }
     try {
       const response: CommandResponseBody = await switchBotApi.sendCommand(deviceId, command, parameter, commandType);
@@ -187,8 +194,10 @@ export const pollAllDeviceStatuses = createAsyncThunk(
   "devices/pollAllDeviceStatuses",
   async (_, { getState, rejectWithValue }) => {
     const { settings, devices: deviceState } = getState() as RootState;
-    if (!settings.apiToken || !settings.isTokenValidated) {
-      return rejectWithValue("API credentials not set or validated for polling.");
+    if (!isMockMode) {
+      if (!settings.apiToken || !settings.isTokenValidated) {
+        return rejectWithValue("API credentials not set or validated for polling.");
+      }
     }
     if (!deviceState.devices || deviceState.devices.length === 0) {
       return rejectWithValue("No devices to poll.");
@@ -196,7 +205,9 @@ export const pollAllDeviceStatuses = createAsyncThunk(
     if (settings.apiToken && settings.apiSecret) {
       switchBotApi.setCredentials(settings.apiToken, settings.apiSecret);
     } else {
-      return rejectWithValue("API token or secret is missing for polling.");
+      if (!isMockMode) {
+        return rejectWithValue("API token or secret is missing for polling.");
+      }
     }
 
     const statusPromises = deviceState.devices

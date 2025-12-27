@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { switchBotApi } from "../../../../api/apiClient";
 import { SceneSummary } from "../../../../api/types";
 import { RootState } from "../store";
+import { isMockMode } from "../../../../appMode";
 
 export interface ScenesState {
   scenes: SceneSummary[];
@@ -85,13 +86,15 @@ export const loadNightLightSceneAssignments = createAsyncThunk(
 
 export const fetchScenes = createAsyncThunk("scenes/fetchScenes", async (_, { getState, rejectWithValue }) => {
   const { settings } = getState() as RootState;
-  if (!settings.apiToken || !settings.isTokenValidated) {
-    return rejectWithValue("API credentials are not set or not validated. Please check settings.");
-  }
-  if (settings.apiToken && settings.apiSecret) {
-    switchBotApi.setCredentials(settings.apiToken, settings.apiSecret);
-  } else {
-    return rejectWithValue("API token or secret is missing.");
+  if (!isMockMode) {
+    if (!settings.apiToken || !settings.isTokenValidated) {
+      return rejectWithValue("API credentials are not set or not validated. Please check settings.");
+    }
+    if (settings.apiToken && settings.apiSecret) {
+      switchBotApi.setCredentials(settings.apiToken, settings.apiSecret);
+    } else {
+      return rejectWithValue("API token or secret is missing.");
+    }
   }
 
   try {
@@ -106,13 +109,15 @@ export const executeScene = createAsyncThunk(
   "scenes/executeScene",
   async (sceneId: string, { getState, rejectWithValue }) => {
     const { settings } = getState() as RootState;
-    if (!settings.apiToken || !settings.isTokenValidated) {
-      return rejectWithValue({ sceneId, error: "API credentials are not set or not validated. Please check settings." });
-    }
-    if (settings.apiToken && settings.apiSecret) {
-      switchBotApi.setCredentials(settings.apiToken, settings.apiSecret);
-    } else {
-      return rejectWithValue({ sceneId, error: "API token or secret is missing." });
+    if (!isMockMode) {
+      if (!settings.apiToken || !settings.isTokenValidated) {
+        return rejectWithValue({ sceneId, error: "API credentials are not set or not validated. Please check settings." });
+      }
+      if (settings.apiToken && settings.apiSecret) {
+        switchBotApi.setCredentials(settings.apiToken, settings.apiSecret);
+      } else {
+        return rejectWithValue({ sceneId, error: "API token or secret is missing." });
+      }
     }
 
     try {
