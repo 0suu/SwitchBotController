@@ -866,6 +866,8 @@ const definitions: DeviceDefinition[] = [
   },
 ];
 
+export const deviceDefinitions = definitions;
+
 export const findDeviceDefinition = (deviceType?: string) => {
   const normalized = normalizeDeviceType(deviceType);
   let best: { def: DeviceDefinition; score: number } | null = null;
