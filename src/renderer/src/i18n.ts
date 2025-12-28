@@ -109,6 +109,18 @@ const en: Dictionary = {
   "Custom Mode": "Custom Mode",
   "Mode Unknown": "Mode Unknown",
   "Send setAll": "Send",
+  "Night Light": "Night Light",
+  "Assigned scene": "Assigned scene",
+  "Assign a scene to enable the night light button.": "Assign a scene to enable the night light button.",
+  "The assigned scene is not available. Refresh scenes or reassign.":
+    "The assigned scene is not available. Refresh scenes or reassign.",
+  "Night light button settings": "Night light button settings",
+  "Assign scene": "Assign scene",
+  "Select a scene to run when pressing the night light button.":
+    "Select a scene to run when pressing the night light button.",
+  "No scene assigned": "No scene assigned",
+  "Save assignment": "Save assignment",
+  "Reload scenes": "Reload scenes",
 
   // Misc
   "No quick controls available for this device type.":
@@ -235,6 +247,17 @@ const ja: Dictionary = {
   "Custom Mode": "カスタムモード",
   "Mode Unknown": "モード不明",
   "Send setAll": "送信",
+  "Night Light": "常夜灯",
+  "Assigned scene": "割り当てシーン",
+  "Assign a scene to enable the night light button.": "常夜灯ボタンを有効にするにはシーンを割り当ててください。",
+  "The assigned scene is not available. Refresh scenes or reassign.":
+    "割り当てられたシーンが見つかりません。再読み込みするか再割り当てしてください。",
+  "Night light button settings": "常夜灯ボタンの設定",
+  "Assign scene": "シーンを割り当て",
+  "Select a scene to run when pressing the night light button.": "常夜灯ボタンを押したときに実行するシーンを選択してください。",
+  "No scene assigned": "シーンは未割り当てです",
+  "Save assignment": "割り当てを保存",
+  "Reload scenes": "シーンを再読み込み",
 
   // Misc
   "No quick controls available for this device type.":

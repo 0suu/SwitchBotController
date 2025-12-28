@@ -13,15 +13,26 @@ export interface ScenesState {
   lastExecutedSceneId: string | null;
   sceneOrder: string[];
   sceneOrderLoaded: boolean;
+  nightLightSceneMap: Record<string, string | undefined>;
+  nightLightScenesLoaded: boolean;
 }
 
 const SCENE_ORDER_STORAGE_KEY = "sceneOrder";
+const NIGHT_LIGHT_SCENE_STORAGE_KEY = "nightLightSceneAssignments";
 
 const persistSceneOrder = (order: string[]) => {
   try {
     void window.electronStore.set(SCENE_ORDER_STORAGE_KEY, order);
   } catch (error) {
     console.error("Failed to persist scene order:", error);
+  }
+};
+
+const persistNightLightScenes = (map: Record<string, string | undefined>) => {
+  try {
+    void window.electronStore.set(NIGHT_LIGHT_SCENE_STORAGE_KEY, map);
+  } catch (error) {
+    console.error("Failed to persist night-light scene assignments:", error);
   }
 };
 
@@ -35,6 +46,8 @@ const initialState: ScenesState = {
   lastExecutedSceneId: null,
   sceneOrder: [],
   sceneOrderLoaded: false,
+  nightLightSceneMap: {},
+  nightLightScenesLoaded: false,
 };
 
 export const loadSceneOrder = createAsyncThunk("scenes/loadSceneOrder", async () => {
@@ -48,6 +61,27 @@ export const loadSceneOrder = createAsyncThunk("scenes/loadSceneOrder", async ()
   }
   return [];
 });
+
+export const loadNightLightSceneAssignments = createAsyncThunk(
+  "scenes/loadNightLightSceneAssignments",
+  async () => {
+    try {
+      const stored = await window.electronStore.get(NIGHT_LIGHT_SCENE_STORAGE_KEY);
+      if (stored && typeof stored === "object") {
+        const map: Record<string, string> = {};
+        Object.entries(stored as Record<string, unknown>).forEach(([deviceId, sceneId]) => {
+          if (typeof deviceId === "string" && typeof sceneId === "string") {
+            map[deviceId] = sceneId;
+          }
+        });
+        return map;
+      }
+    } catch (error) {
+      console.error("Failed to load night-light scene assignments:", error);
+    }
+    return {};
+  }
+);
 
 export const fetchScenes = createAsyncThunk("scenes/fetchScenes", async (_, { getState, rejectWithValue }) => {
   const { settings } = getState() as RootState;
@@ -109,6 +143,15 @@ const scenesSlice = createSlice({
       state.sceneOrderLoaded = true;
       persistSceneOrder(state.sceneOrder);
     },
+    setNightLightSceneForDevice: (state, action: PayloadAction<{ deviceId: string; sceneId: string | null }>) => {
+      const { deviceId, sceneId } = action.payload;
+      if (sceneId) {
+        state.nightLightSceneMap[deviceId] = sceneId;
+      } else {
+        delete state.nightLightSceneMap[deviceId];
+      }
+      persistNightLightScenes(state.nightLightSceneMap);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -159,11 +202,24 @@ const scenesSlice = createSlice({
       })
       .addCase(loadSceneOrder.rejected, (state) => {
         state.sceneOrderLoaded = true;
+      })
+      .addCase(loadNightLightSceneAssignments.fulfilled, (state, action: PayloadAction<Record<string, string>>) => {
+        state.nightLightScenesLoaded = true;
+        state.nightLightSceneMap = action.payload;
+      })
+      .addCase(loadNightLightSceneAssignments.rejected, (state) => {
+        state.nightLightScenesLoaded = true;
       });
   },
 });
 
-export const { clearSceneErrors, clearSceneExecutionError, clearScenesState, setSceneOrder } = scenesSlice.actions;
+export const {
+  clearSceneErrors,
+  clearSceneExecutionError,
+  clearScenesState,
+  setSceneOrder,
+  setNightLightSceneForDevice
+} = scenesSlice.actions;
 
 export const selectScenes = (state: RootState) => state.scenes.scenes;
 export const selectScenesLoading = (state: RootState) => state.scenes.isLoading;
@@ -174,5 +230,8 @@ export const selectSceneExecutionError = (state: RootState, sceneId: string) =>
 export const selectLastExecutedSceneId = (state: RootState) => state.scenes.lastExecutedSceneId;
 export const selectSceneOrderLoaded = (state: RootState) => state.scenes.sceneOrderLoaded;
 export const selectSceneOrder = (state: RootState) => state.scenes.sceneOrder;
+export const selectNightLightSceneForDevice = (state: RootState, deviceId: string) =>
+  state.scenes.nightLightSceneMap[deviceId];
+export const selectNightLightScenesLoaded = (state: RootState) => state.scenes.nightLightScenesLoaded;
 
 export default scenesSlice.reducer;

@@ -22,6 +22,17 @@ import {
   sendDeviceCommand
 } from "../store/slices/deviceSlice";
 import { selectIsTokenValidated } from "../store/slices/settingsSlice";
+import {
+  executeScene,
+  fetchScenes,
+  selectNightLightSceneForDevice,
+  selectSceneExecutionError,
+  selectSceneIsExecuting,
+  selectScenes,
+  selectScenesError,
+  selectScenesLoading,
+  setNightLightSceneForDevice
+} from "../store/slices/sceneSlice";
 import { DeviceCommandDefinition, ParameterSpec, findDeviceDefinition } from "../deviceDefinitions";
 import { useTranslation } from "../useTranslation";
 
@@ -67,6 +78,20 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, 
   const [acFanSpeed, setAcFanSpeed] = useState("3"); // 3: medium
   const [acPower, setAcPower] = useState<"on" | "off">("on");
   const [tvChannel, setTvChannel] = useState("");
+  const scenes = useSelector(selectScenes);
+  const scenesLoading = useSelector(selectScenesLoading);
+  const scenesError = useSelector(selectScenesError);
+  const assignedNightLightSceneId = useSelector((state: RootState) =>
+    selectNightLightSceneForDevice(state, device.deviceId)
+  );
+  const nightLightExecuting = useSelector((state: RootState) =>
+    assignedNightLightSceneId ? selectSceneIsExecuting(state, assignedNightLightSceneId) : false
+  );
+  const nightLightExecutionError = useSelector((state: RootState) =>
+    assignedNightLightSceneId ? selectSceneExecutionError(state, assignedNightLightSceneId) : null
+  );
+  const [nightLightSceneSelection, setNightLightSceneSelection] = useState<string>(assignedNightLightSceneId || "");
+  const [requestedScenes, setRequestedScenes] = useState(false);
 
   const definition = useMemo(() => findDeviceDefinition(device.deviceType), [device.deviceType]);
   const isHiddenByDefinition = definition?.hide;
@@ -100,6 +125,19 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, 
   const supportsLightColorTemperature = isColorBulb || isStripLight3 || isFloorLamp || isCeilingLight;
   const supportsLightColor = isColorBulb || isStripLight || isStripLight3 || isFloorLamp;
   const supportsLockDeadbolt = (isLock && !isLockLite) || isLockPro || isLockUltra;
+  const controlsDisabled = isSending || !isTokenValid;
+  const nightLightScene = useMemo(
+    () => scenes.find((scene) => scene.sceneId === assignedNightLightSceneId) || null,
+    [assignedNightLightSceneId, scenes]
+  );
+  const hasScenes = scenes.length > 0;
+  const nightLightSelectionChanged = nightLightSceneSelection !== (assignedNightLightSceneId || "");
+  const nightLightButtonDisabled = controlsDisabled || !isTokenValid || !nightLightScene || nightLightExecuting;
+  const nightLightSaveDisabled =
+    !isTokenValid ||
+    scenesLoading ||
+    (!hasScenes && !assignedNightLightSceneId && nightLightSceneSelection === "") ||
+    !nightLightSelectionChanged;
   const remoteTypeLabel = (device as any).remoteType || device.deviceType;
   const remoteTypeLower = (remoteTypeLabel || "").toLowerCase();
   const remoteSupportsDefaultCommands = remoteTypeLower !== "others";
@@ -110,7 +148,6 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, 
   const isRemoteLight = isInfraredRemote && remoteTypeLower.includes("light");
 
   const hasPredefinedControls = isInfraredRemote || isBot || isPlug || isCurtain || isLock || isLight || isHumidifier || isFan || isVacuum;
-  const controlsDisabled = isSending || !isTokenValid;
   const botModeRaw = isBot ? status?.deviceMode || (device as any)?.deviceMode : "";
   const botModeNormalized = typeof botModeRaw === "string" ? botModeRaw.toLowerCase() : "";
   const botModeType: "switch" | "press" | "customize" | "unknown" = botModeNormalized.includes("switch")
@@ -157,6 +194,24 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, 
 
     const modeMap = { auto: "auto", low: "101", medium: "102", high: "103" };
     sendCommand("setMode", modeMap[mode]);
+  };
+
+  const handleExecuteNightLightScene = () => {
+    if (nightLightScene) {
+      dispatch(executeScene(nightLightScene.sceneId));
+    }
+  };
+
+  const handleSaveNightLightScene = () => {
+    dispatch(setNightLightSceneForDevice({
+      deviceId: device.deviceId,
+      sceneId: nightLightSceneSelection || null
+    }));
+  };
+
+  const handleRefreshScenes = () => {
+    setRequestedScenes(true);
+    dispatch(fetchScenes());
   };
 
   const sliderLabel = (value: number) => `${value}`;
@@ -208,6 +263,17 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, 
     });
     setDynamicParams(defaults);
   }, [definition, device.deviceId]);
+
+  useEffect(() => {
+    setNightLightSceneSelection(assignedNightLightSceneId || "");
+  }, [assignedNightLightSceneId]);
+
+  useEffect(() => {
+    if (!isCeilingLight || !isTokenValid) return;
+    if (hasScenes || scenesLoading || requestedScenes) return;
+    setRequestedScenes(true);
+    dispatch(fetchScenes());
+  }, [dispatch, hasScenes, isCeilingLight, isTokenValid, requestedScenes, scenesLoading]);
 
   const resolveParameterValue = (cmd: DeviceCommandDefinition) => {
     const spec = cmd.parameter;
@@ -673,7 +739,37 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, 
                   Toggle
                 </Button>
               )}
+              {isCeilingLight && (
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={handleExecuteNightLightScene}
+                  disabled={nightLightButtonDisabled}
+                  fullWidth
+                >
+                  {nightLightExecuting ? t("Executing...") : t("Night Light")}
+                </Button>
+              )}
             </Box>
+            {isCeilingLight && (
+              <Stack spacing={0.25} sx={{ width: "100%", maxWidth: maxControlWidth }}>
+                <Typography variant="caption" color={nightLightScene ? "text.secondary" : "warning.main"}>
+                  {nightLightScene
+                    ? `${t("Assigned scene")}: ${nightLightScene.sceneName || t("Unnamed Scene")}`
+                    : t("Assign a scene to enable the night light button.")}
+                </Typography>
+                {assignedNightLightSceneId && !nightLightScene && (
+                  <Typography variant="caption" color="error">
+                    {t("The assigned scene is not available. Refresh scenes or reassign.")}
+                  </Typography>
+                )}
+                {nightLightExecutionError && (
+                  <Typography variant="caption" color="error">
+                    {nightLightExecutionError}
+                  </Typography>
+                )}
+              </Stack>
+            )}
             {supportsLightBrightness && (
               <Box sx={sliderContainerSx}>
                 <Typography variant="caption" color="text.secondary">Brightness</Typography>
@@ -727,6 +823,50 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, 
                 >
                   {t("Apply")}
                 </Button>
+              </Stack>
+            )}
+            {isCeilingLight && !dense && (
+              <Stack spacing={0.75} sx={{ width: "100%", maxWidth: maxControlWidth }}>
+                <Typography variant="subtitle2" sx={sectionLabelSx}>{t("Night light button settings")}</Typography>
+                <TextField
+                  select
+                  size="small"
+                  label={t("Assign scene")}
+                  value={nightLightSceneSelection}
+                  onChange={(e) => setNightLightSceneSelection(e.target.value)}
+                  disabled={!isTokenValid || scenesLoading || (!hasScenes && !assignedNightLightSceneId)}
+                  helperText={hasScenes ? t("Select a scene to run when pressing the night light button.") : t("No scenes found. Create a manual scene in the SwitchBot app.")}
+                >
+                  <MenuItem value="">{t("No scene assigned")}</MenuItem>
+                  {scenes.map((scene) => (
+                    <MenuItem key={scene.sceneId} value={scene.sceneId}>
+                      {scene.sceneName || t("Unnamed Scene")}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleSaveNightLightScene}
+                    disabled={nightLightSaveDisabled}
+                  >
+                    {t("Save assignment")}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={handleRefreshScenes}
+                    disabled={scenesLoading || !isTokenValid}
+                  >
+                    {scenesLoading ? t("Loading scenes...") : t("Reload scenes")}
+                  </Button>
+                </Stack>
+                {scenesError && (
+                  <Typography variant="caption" color="error">
+                    {scenesError}
+                  </Typography>
+                )}
               </Stack>
             )}
           </>
