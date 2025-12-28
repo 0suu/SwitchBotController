@@ -602,7 +602,7 @@ const definitions: DeviceDefinition[] = [
   },
   {
     key: "ceilingLight",
-    matchers: ["ceiling light pro", "ceiling light"],
+    matchers: ["ceiling light pro", "ceiling light", "woceilingpro", "woceiling"],
     commands: [
       { label: "Turn On", command: "turnOn" },
       { label: "Turn Off", command: "turnOff" },

@@ -104,7 +104,9 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, 
   const isPlug = !isInfraredRemote && normalizedType.includes("plug");
   const isCurtain = !isInfraredRemote && (normalizedType.includes("curtain") || normalizedType.includes("blind tilt"));
   const isLock = !isInfraredRemote && normalizedType.includes("lock");
-  const isCeilingLight = !isInfraredRemote && normalizedType.includes("ceiling light");
+  const isCeilingLight =
+    !isInfraredRemote &&
+    (normalizedType.includes("ceiling light") || normalizedType.includes("woceiling") || definition?.key === "ceilingLight");
   const isFloorLamp = !isInfraredRemote && normalizedType.includes("floor lamp");
   const isStripLight3 = !isInfraredRemote && normalizedType.includes("strip light 3");
   const isStripLight = !isInfraredRemote && normalizedType.includes("strip light");
