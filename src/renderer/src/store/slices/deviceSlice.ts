@@ -88,30 +88,6 @@ const persistDeviceOrder = (order: string[]) => {
   }
 };
 
-const applyDeviceOrder = (devices: AnyDevice[], desiredOrder: string[]) => {
-  const idToDevice = new Map(devices.map((device) => [device.deviceId, device]));
-  const seen = new Set<string>();
-  const orderedDevices: AnyDevice[] = [];
-
-  desiredOrder.forEach((id) => {
-    const device = idToDevice.get(id);
-    if (device && !seen.has(id)) {
-      orderedDevices.push(device);
-      seen.add(id);
-    }
-  });
-
-  devices.forEach((device) => {
-    if (!seen.has(device.deviceId)) {
-      orderedDevices.push(device);
-      seen.add(device.deviceId);
-    }
-  });
-
-  const normalizedOrder = orderedDevices.map((device) => device.deviceId);
-  return { orderedDevices, normalizedOrder };
-};
-
 export const loadDeviceOrder = createAsyncThunk("devices/loadDeviceOrder", async () => {
   try {
     const stored = await window.electronStore.get(DEVICE_ORDER_STORAGE_KEY);

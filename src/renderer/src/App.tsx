@@ -27,7 +27,7 @@ import {
   selectTheme,
 } from "./store/slices/settingsSlice";
 import { loadDeviceOrder, pollAllDeviceStatuses, selectAllDevices } from "./store/slices/deviceSlice"; // Added pollAllDeviceStatuses
-import { loadSceneOrder } from "./store/slices/sceneSlice";
+import { loadNightLightSceneAssignments, loadSceneOrder } from "./store/slices/sceneSlice";
 import { useTranslation } from "./useTranslation";
 
 type View = "list" | "detail" | "settings" | "scenes";
@@ -58,6 +58,7 @@ function App() {
     dispatch(loadApiCredentials());
     dispatch(loadDeviceOrder());
     dispatch(loadSceneOrder());
+    dispatch(loadNightLightSceneAssignments());
   }, [dispatch]);
 
   // Restore the last opened top-level view on startup.
