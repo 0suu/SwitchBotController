@@ -1,3 +1,13 @@
-const modeFromEnv = typeof import.meta !== "undefined" && import.meta.env?.VITE_APP_MODE;
+declare const __VITE_APP_MODE__: string | undefined;
 
-export const isMockMode = modeFromEnv === "mock";
+const modeFromProcessEnv =
+  typeof process !== "undefined" ? process.env?.VITE_APP_MODE : undefined;
+
+const modeFromViteDefine =
+  typeof __VITE_APP_MODE__ === "string" && __VITE_APP_MODE__.trim() !== ""
+    ? __VITE_APP_MODE__.trim()
+    : undefined;
+
+const appMode = modeFromProcessEnv ?? modeFromViteDefine;
+
+export const isMockMode = appMode === "mock";

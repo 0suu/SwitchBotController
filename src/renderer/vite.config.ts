@@ -3,8 +3,12 @@ import react from "@vitejs/plugin-react";
 
 const target = process.env.BUILD_TARGET === "web" ? "web" : "electron";
 const isWebBuild = target === "web";
+const appMode = process.env.VITE_APP_MODE ?? "";
 
 export default defineConfig({
+  define: {
+    __VITE_APP_MODE__: JSON.stringify(appMode),
+  },
   plugins: [react()],
   base: isWebBuild ? "/" : "", // Empty base path for Electron packaging
   build: {
