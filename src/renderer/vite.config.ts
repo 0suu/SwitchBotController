@@ -1,17 +1,26 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const target = process.env.BUILD_TARGET === "web" ? "web" : "electron";
+const isWebBuild = target === "web";
+const appMode = process.env.VITE_APP_MODE ?? "";
+
 export default defineConfig({
+  define: {
+    __VITE_APP_MODE__: JSON.stringify(appMode),
+  },
   plugins: [react()],
-  base: "", // Empty base path for Electron packaging
+  base: isWebBuild ? "/" : "", // Empty base path for Electron packaging
   build: {
-    outDir: "../../dist_renderer", // Output directory relative to vite.config.ts
+    outDir: isWebBuild ? "../../dist" : "../../dist_renderer", // Output directory relative to vite.config.ts
     emptyOutDir: true, // Clean the output directory before building
     assetsDir: "assets", // Directory for assets
-    rollupOptions: {
-      output: {
-        format: "cjs" // Use CommonJS format for compatibility
-      }
-    }
+    rollupOptions: isWebBuild
+      ? undefined
+      : {
+          output: {
+            format: "cjs" // Use CommonJS format for compatibility
+          }
+        }
   }
 });
