@@ -1,12 +1,11 @@
 import React from "react";
 import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import CardActions from "@mui/material/CardActions";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
+import ButtonBase from "@mui/material/ButtonBase";
 import { useTheme } from "@mui/material/styles";
 
 // Icons
@@ -19,8 +18,6 @@ import RouterIcon from "@mui/icons-material/Router";
 import TvIcon from "@mui/icons-material/Tv";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import DeviceUnknownIcon from "@mui/icons-material/DeviceUnknown";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-
 import { AnyDevice } from "../../../api/types";
 import { DeviceControls } from "./DeviceControls";
 import { findDeviceDefinition, getStatusFieldsForDevice } from "../deviceDefinitions";
@@ -91,7 +88,19 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, status, onSelect
         >
             <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
                 <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 2 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, overflow: "hidden" }}>
+                    <ButtonBase
+                        onClick={() => onSelect(device.deviceId)}
+                        aria-label={device.deviceName || t("Unnamed Device")}
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1.5,
+                            overflow: "hidden",
+                            textAlign: "left",
+                            borderRadius: 2,
+                            p: 0.5,
+                        }}
+                    >
                         <Box
                             sx={{
                                 p: 1,
@@ -113,7 +122,7 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, status, onSelect
                                 {device.deviceType}
                             </Typography>
                         </Box>
-                    </Box>
+                    </ButtonBase>
                 </Box>
 
                 {highlightTempHumidity && (temperatureText || humidityText) ? (
@@ -172,17 +181,6 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, status, onSelect
                 </Box>
             </CardContent>
 
-            <CardActions sx={{ p: 2, pt: 0 }}>
-                <Button
-                    fullWidth
-                    variant="outlined"
-                    endIcon={<ArrowForwardIcon />}
-                    onClick={() => onSelect(device.deviceId)}
-                    sx={{ borderRadius: 2 }}
-                >
-                    {t("Details")}
-                </Button>
-            </CardActions>
         </Card>
     );
 };
