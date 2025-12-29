@@ -448,7 +448,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
           {isRemoteAC && (
             <>
               <Box sx={sliderContainerSx}>
-                <Typography variant="caption" color="text.secondary">Temperature (°C)</Typography>
+                <Typography variant="caption" color="text.secondary">{t("Temperature (°C)")}</Typography>
                 <Slider
                   size="small"
                   value={acTemperature}
@@ -465,39 +465,39 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
                 <TextField
                   select
                   size="small"
-                  label="Mode"
+                  label={t("Mode")}
                   value={acMode}
                   onChange={(e) => setAcMode(e.target.value)}
                   fullWidth
                 >
-                  <MenuItem value="1">Auto</MenuItem>
-                  <MenuItem value="2">Cool</MenuItem>
-                  <MenuItem value="3">Dry</MenuItem>
-                  <MenuItem value="4">Fan</MenuItem>
-                  <MenuItem value="5">Heat</MenuItem>
+                  <MenuItem value="1">{t("Auto")}</MenuItem>
+                  <MenuItem value="2">{t("Cool")}</MenuItem>
+                  <MenuItem value="3">{t("Dry")}</MenuItem>
+                  <MenuItem value="4">{t("Fan")}</MenuItem>
+                  <MenuItem value="5">{t("Heat")}</MenuItem>
                 </TextField>
                 <TextField
                   select
                   size="small"
-                  label="Fan speed"
+                  label={t("Fan speed")}
                   value={acFanSpeed}
                   onChange={(e) => setAcFanSpeed(e.target.value)}
                   fullWidth
                 >
-                  <MenuItem value="1">Auto</MenuItem>
-                  <MenuItem value="2">Low</MenuItem>
-                  <MenuItem value="3">Medium</MenuItem>
-                  <MenuItem value="4">High</MenuItem>
+                  <MenuItem value="1">{t("Auto")}</MenuItem>
+                  <MenuItem value="2">{t("Low")}</MenuItem>
+                  <MenuItem value="3">{t("Medium")}</MenuItem>
+                  <MenuItem value="4">{t("High")}</MenuItem>
                 </TextField>
                 <TextField
                   select
                   size="small"
-                  label="Power"
+                  label={t("Power")}
                   value={acPower}
                   onChange={(e) => setAcPower(e.target.value as "on" | "off")}
                   fullWidth
                 >
-                  <MenuItem value="on">On</MenuItem>
+                  <MenuItem value="on">{t("On")}</MenuItem>
                   <MenuItem value="off">{t("Off")}</MenuItem>
                 </TextField>
               </Box>
