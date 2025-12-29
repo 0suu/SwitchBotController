@@ -6,6 +6,11 @@ import {
   Button,
   Chip,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   LinearProgress,
   MenuItem,
   Slider,
@@ -43,6 +48,7 @@ interface DeviceControlsProps {
   showCustomCommands?: boolean;
   showNightLightInstruction?: boolean;
   showChildLockControls?: boolean;
+  confirmOnOffPressActions?: boolean;
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -57,6 +63,8 @@ const hexToRgbParameter = (hexValue: string): string | null => {
   return `${r}:${g}:${b}`;
 };
 
+export const getConfirmCommandStorageKey = (deviceId: string) => `confirmOnOffPressActions.${deviceId}`;
+
 export const DeviceControls: React.FC<DeviceControlsProps> = ({
   device,
   status,
@@ -64,6 +72,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
   showCustomCommands = true,
   showNightLightInstruction = true,
   showChildLockControls = false,
+  confirmOnOffPressActions,
 }) => {
   const dispatch: AppDispatch = useDispatch();
   const isSending = useSelector((state: RootState) => selectIsCommandSendingForDevice(state, device.deviceId));
@@ -101,6 +110,41 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
   );
   const [nightLightSceneSelection, setNightLightSceneSelection] = useState<string>(assignedNightLightSceneId || "");
   const [requestedScenes, setRequestedScenes] = useState(false);
+  const [resolvedConfirmOnOffPress, setResolvedConfirmOnOffPress] = useState(
+    typeof confirmOnOffPressActions === "boolean" ? confirmOnOffPressActions : false
+  );
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingCommand, setPendingCommand] = useState<{
+    command: string;
+    parameter: any;
+    commandType: "command" | "customize";
+  } | null>(null);
+
+  useEffect(() => {
+    let isActive = true;
+    if (typeof confirmOnOffPressActions === "boolean") {
+      setResolvedConfirmOnOffPress(confirmOnOffPressActions);
+      return () => {
+        isActive = false;
+      };
+    }
+    const loadConfirmationSetting = async () => {
+      try {
+        const stored = await window.electronStore.get(getConfirmCommandStorageKey(device.deviceId));
+        if (!isActive) return;
+        setResolvedConfirmOnOffPress(typeof stored === "boolean" ? stored : false);
+      } catch (error) {
+        console.error("Failed to load confirmation setting:", error);
+        if (isActive) {
+          setResolvedConfirmOnOffPress(false);
+        }
+      }
+    };
+    loadConfirmationSetting();
+    return () => {
+      isActive = false;
+    };
+  }, [confirmOnOffPressActions, device.deviceId]);
 
   const definition = useMemo(() => findDeviceDefinition(device.deviceType), [device.deviceType]);
   const isHiddenByDefinition = definition?.hide;
@@ -182,9 +226,54 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
   const botShowsOnOff = botModeType === "switch" || botModeType === "unknown";
   const botShowsPress = botModeType === "press" || botModeType === "customize" || botModeType === "unknown";
 
-  const sendCommand = (command: string, parameter: any = "default", commandType: "command" | "customize" = "command") => {
+  const confirmMessageForCommand = (command: string) => {
+    switch (command) {
+      case "turnOn":
+        return t("Confirm turn on");
+      case "turnOff":
+        return t("Confirm turn off");
+      case "press":
+        return t("Confirm press");
+      default:
+        return t("Confirm command");
+    }
+  };
+
+  const shouldConfirmCommand = (command: string) =>
+    resolvedConfirmOnOffPress &&
+    !isInfraredRemote &&
+    (isBot || isPlug) &&
+    (command === "turnOn" || command === "turnOff" || command === "press");
+
+  const executeCommand = (command: string, parameter: any, commandType: "command" | "customize") => {
     dispatch(clearDeviceCommandError(device.deviceId));
     dispatch(sendDeviceCommand({ deviceId: device.deviceId, command, parameter, commandType }));
+  };
+
+  const sendCommand = (command: string, parameter: any = "default", commandType: "command" | "customize" = "command") => {
+    if (shouldConfirmCommand(command)) {
+      setPendingCommand({ command, parameter, commandType });
+      setConfirmDialogOpen(true);
+      return;
+    }
+    executeCommand(command, parameter, commandType);
+  };
+
+  const handleConfirmCancel = () => {
+    setConfirmDialogOpen(false);
+  };
+
+  const handleConfirmProceed = () => {
+    if (!pendingCommand) {
+      setConfirmDialogOpen(false);
+      return;
+    }
+    executeCommand(pendingCommand.command, pendingCommand.parameter, pendingCommand.commandType);
+    setConfirmDialogOpen(false);
+  };
+
+  const handleConfirmDialogExited = () => {
+    setPendingCommand(null);
   };
 
   type EvaporativeModeKey = "level1" | "level2" | "level3" | "level4" | "humidity" | "sleep" | "auto" | "dry";
@@ -628,6 +717,24 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
 
   return (
     <Box sx={{ p: dense ? 0.5 : 0, borderRadius: 1 }}>
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={handleConfirmCancel}
+        TransitionProps={{ onExited: handleConfirmDialogExited }}
+      >
+        <DialogTitle>{t("Confirm action")}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {pendingCommand ? confirmMessageForCommand(pendingCommand.command) : t("Confirm command")}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleConfirmCancel}>{t("Cancel")}</Button>
+          <Button onClick={handleConfirmProceed} variant="contained" autoFocus>
+            {t("Confirm")}
+          </Button>
+        </DialogActions>
+      </Dialog>
       {isSending && <LinearProgress sx={{ mb: 1 }} />}
       {deviceError && <Alert severity="error" sx={{ mb: 1 }}>{deviceError}</Alert>}
 

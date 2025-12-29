@@ -62,6 +62,9 @@ const en: Dictionary = {
     "Status API is not available for virtual infrared remotes. Use the controls above to send commands.",
   "Loading status...": "Loading status...",
   "Error fetching status:": "Error fetching status:",
+  "Confirm on/off/press actions": "Confirm on/off/press actions",
+  "Show confirmation dialog before executing on/off/press actions.":
+    "Show a confirmation dialog before executing on/off/press actions.",
 
   // Settings
   "Settings Title": "Settings",
@@ -123,6 +126,13 @@ const en: Dictionary = {
   "The assigned scene is not available. Refresh scenes or reassign.":
     "The assigned scene is not available. Refresh scenes or reassign.",
   "Night light button settings": "Night light button settings",
+  "Confirm turn on": "Are you sure you want to turn on?",
+  "Confirm turn off": "Are you sure you want to turn off?",
+  "Confirm press": "Are you sure you want to press?",
+  "Confirm command": "Are you sure you want to execute this command?",
+  "Confirm action": "Confirm action",
+  Cancel: "Cancel",
+  Confirm: "Confirm",
   "Assign scene": "Assign scene",
   "Select a scene to run when pressing the night light button.":
     "Select a scene to run when pressing the night light button.",
@@ -208,6 +218,9 @@ const ja: Dictionary = {
     "赤外線リモコン（仮想デバイス）ではステータス API は使用できません。上のボタンからコマンドを送信してください。",
   "Loading status...": "ステータスを取得中...",
   "Error fetching status:": "ステータス取得エラー:",
+  "Confirm on/off/press actions": "操作の確認",
+  "Show confirmation dialog before executing on/off/press actions.":
+    "オン/オフ/プレス操作の前に確認ダイアログを表示します。",
 
   // Settings
   "Settings Title": "設定",
@@ -269,6 +282,13 @@ const ja: Dictionary = {
   "The assigned scene is not available. Refresh scenes or reassign.":
     "割り当てられたシーンが見つかりません。再読み込みするか再割り当てしてください。",
   "Night light button settings": "常夜灯ボタンの設定",
+  "Confirm turn on": "本当にオンにしますか？",
+  "Confirm turn off": "本当にオフにしますか？",
+  "Confirm press": "本当にプレス操作を実行しますか？",
+  "Confirm command": "本当にこの操作を実行しますか？",
+  "Confirm action": "操作の確認",
+  Cancel: "キャンセル",
+  Confirm: "確認",
   "Assign scene": "シーンを割り当て",
   "Select a scene to run when pressing the night light button.": "常夜灯ボタンを押したときに実行するシーンを選択してください。",
   "No scene assigned": "シーンは未割り当てです",
