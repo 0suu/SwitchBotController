@@ -162,7 +162,13 @@ export const DeviceCard: React.FC<DeviceCardProps> = ({ device, status, onSelect
                 )}
 
                 <Box sx={{ mt: "auto" }}>
-                    <DeviceControls device={device} status={status} dense showCustomCommands={false} />
+                    <DeviceControls
+                        device={device}
+                        status={status}
+                        dense
+                        showCustomCommands={false}
+                        showNightLightInstruction={false}
+                    />
                 </Box>
             </CardContent>
 
