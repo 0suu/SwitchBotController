@@ -233,6 +233,14 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
   const sliderLabel = (value: number) => `${value}`;
 
   const sectionLabelSx = { fontWeight: 700, color: "text.secondary", mt: dense ? 0.25 : 1 };
+  const renderSectionLabel = (label: React.ReactNode) => {
+    if (dense) return null;
+    return (
+      <Typography variant="subtitle2" sx={sectionLabelSx}>
+        {label}
+      </Typography>
+    );
+  };
   const gridColumns = dense ? 2 : 3;
   const maxControlWidth = dense ? 360 : 520;
   const buttonGridSx = {
@@ -380,9 +388,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
     if (cmds.length === 0 || isHiddenByDefinition) return null;
     return (
       <Stack spacing={dense ? 0.6 : 1.2}>
-        <Typography variant="subtitle2" sx={sectionLabelSx}>
-          Controls
-        </Typography>
+        {renderSectionLabel("Controls")}
         <Stack spacing={dense ? 0.5 : 1}>
           {cmds.map((cmd) => (
             <Box key={cmd.command} sx={{ borderBottom: "1px dashed rgba(255,255,255,0.12)", pb: dense ? 0.5 : 1, mb: dense ? 0.5 : 1 }}>
@@ -409,9 +415,11 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
         {isSending && <LinearProgress sx={{ mb: 1 }} />}
         {deviceError && <Alert severity="error" sx={{ mb: 1 }}>{deviceError}</Alert>}
         <Stack spacing={dense ? 0.6 : 1.2}>
-          <Typography variant="subtitle2" sx={sectionLabelSx}>
-            {t("Virtual Remote")} - {remoteTypeLabel || t("Infrared device")}
-          </Typography>
+          {renderSectionLabel(
+            <>
+              {t("Virtual Remote")} - {remoteTypeLabel || t("Infrared device")}
+            </>
+          )}
 
           {remoteSupportsDefaultCommands && (
             <Box sx={buttonGridSx}>
@@ -626,7 +634,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
       <Stack spacing={dense ? 0.6 : 1.2}>
         {isBot && (
           <>
-            <Typography variant="subtitle2" sx={sectionLabelSx}>Bot</Typography>
+            {renderSectionLabel("Bot")}
             {botModeType !== "unknown" && (
               <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: dense ? 0.5 : 1 }}>
                 <Chip label={`${t("Mode")}: ${botModeLabelMap[botModeType]}`} size="small" variant="outlined" />
@@ -668,7 +676,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
 
         {isPlug && (
           <>
-            <Typography variant="subtitle2" sx={sectionLabelSx}>Plug</Typography>
+            {renderSectionLabel("Plug")}
             <Box sx={buttonGridSx}>
               <Button
                 size="small"
@@ -696,7 +704,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
 
         {(isCurtain) && (
           <>
-            <Typography variant="subtitle2" sx={sectionLabelSx}>Curtain / Blind</Typography>
+            {renderSectionLabel("Curtain / Blind")}
             <Box sx={buttonGridSx}>
               <Button size="small" variant="contained" onClick={() => sendCommand("turnOn")} disabled={controlsDisabled} fullWidth>Open</Button>
               <Button size="small" variant="outlined" onClick={() => sendCommand("pause")} disabled={controlsDisabled} fullWidth>Pause</Button>
@@ -723,7 +731,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
 
         {isLight && (
           <>
-            <Typography variant="subtitle2" sx={sectionLabelSx}>Lighting</Typography>
+            {renderSectionLabel("Lighting")}
             <Box sx={buttonGridSx}>
               <Button
                 size="small"
@@ -843,7 +851,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
             )}
             {isCeilingLight && !dense && (
               <Stack spacing={0.75} sx={{ width: "100%", maxWidth: maxControlWidth }}>
-                <Typography variant="subtitle2" sx={sectionLabelSx}>{t("Night light button settings")}</Typography>
+                {renderSectionLabel(t("Night light button settings"))}
                 <TextField
                   select
                   size="small"
@@ -890,7 +898,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
 
         {isHumidifier && (
           <>
-            <Typography variant="subtitle2" sx={sectionLabelSx}>Humidifier</Typography>
+            {renderSectionLabel("Humidifier")}
             <Box sx={buttonGridSx}>
               <Button
                 size="small"
@@ -1014,7 +1022,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
 
         {isFan && (
           <>
-            <Typography variant="subtitle2" sx={sectionLabelSx}>Fan</Typography>
+            {renderSectionLabel("Fan")}
             <Box sx={buttonGridSx}>
               <Button
                 size="small"
@@ -1088,7 +1096,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
 
         {isVacuum && (
           <>
-            <Typography variant="subtitle2" sx={sectionLabelSx}>Vacuum</Typography>
+            {renderSectionLabel("Vacuum")}
             <Box sx={buttonGridSx}>
               <Button
                 size="small"
@@ -1140,7 +1148,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
 
         {isLock && (
           <>
-            <Typography variant="subtitle2" sx={sectionLabelSx}>Lock</Typography>
+            {renderSectionLabel("Lock")}
             <Box sx={buttonGridSx}>
               <Button
                 size="small"
