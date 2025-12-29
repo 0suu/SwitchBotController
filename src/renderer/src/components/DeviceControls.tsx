@@ -41,6 +41,7 @@ interface DeviceControlsProps {
   status?: Partial<DeviceStatusResponseBody> | null;
   dense?: boolean;
   showCustomCommands?: boolean;
+  showNightLightInstruction?: boolean;
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -55,7 +56,13 @@ const hexToRgbParameter = (hexValue: string): string | null => {
   return `${r}:${g}:${b}`;
 };
 
-export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, dense = false, showCustomCommands = true }) => {
+export const DeviceControls: React.FC<DeviceControlsProps> = ({
+  device,
+  status,
+  dense = false,
+  showCustomCommands = true,
+  showNightLightInstruction = true,
+}) => {
   const dispatch: AppDispatch = useDispatch();
   const isSending = useSelector((state: RootState) => selectIsCommandSendingForDevice(state, device.deviceId));
   const deviceError = useSelector((state: RootState) => selectCommandErrorForDevice(state, device.deviceId));
@@ -104,7 +111,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, 
   const isPlug = !isInfraredRemote && normalizedType.includes("plug");
   const isCurtain = !isInfraredRemote && (normalizedType.includes("curtain") || normalizedType.includes("blind tilt"));
   const isLock = !isInfraredRemote && normalizedType.includes("lock");
-  const isCeilingLight = !isInfraredRemote && normalizedType.includes("ceiling light");
+  const isCeilingLight = !isInfraredRemote && definition?.key === "ceilingLight";
   const isFloorLamp = !isInfraredRemote && normalizedType.includes("floor lamp");
   const isStripLight3 = !isInfraredRemote && normalizedType.includes("strip light 3");
   const isStripLight = !isInfraredRemote && normalizedType.includes("strip light");
@@ -138,6 +145,13 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, 
     scenesLoading ||
     (!hasScenes && !assignedNightLightSceneId && nightLightSceneSelection === "") ||
     !nightLightSelectionChanged;
+  const nightLightInfoText =
+    nightLightScene
+      ? `${t("Assigned scene")}: ${nightLightScene.sceneName || t("Unnamed Scene")}`
+      : showNightLightInstruction
+        ? t("Assign a scene to enable the night light button.")
+        : null;
+  const nightLightInfoColor = nightLightScene ? "text.secondary" : "warning.main";
   const remoteTypeLabel = (device as any).remoteType || device.deviceType;
   const remoteTypeLower = (remoteTypeLabel || "").toLowerCase();
   const remoteSupportsDefaultCommands = remoteTypeLower !== "others";
@@ -753,11 +767,11 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({ device, status, 
             </Box>
             {isCeilingLight && (
               <Stack spacing={0.25} sx={{ width: "100%", maxWidth: maxControlWidth }}>
-                <Typography variant="caption" color={nightLightScene ? "text.secondary" : "warning.main"}>
-                  {nightLightScene
-                    ? `${t("Assigned scene")}: ${nightLightScene.sceneName || t("Unnamed Scene")}`
-                    : t("Assign a scene to enable the night light button.")}
-                </Typography>
+                {nightLightInfoText && (
+                  <Typography variant="caption" color={nightLightInfoColor}>
+                    {nightLightInfoText}
+                  </Typography>
+                )}
                 {assignedNightLightSceneId && !nightLightScene && (
                   <Typography variant="caption" color="error">
                     {t("The assigned scene is not available. Refresh scenes or reassign.")}
