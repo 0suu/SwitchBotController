@@ -152,12 +152,16 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
   const isInfraredRemote = !!(device as any).isInfraredRemote;
 
   const normalizedType = useMemo(() => rawType, [rawType]);
+  const normalizedTypeCompact = useMemo(
+    () => normalizedType.replace(/[^a-z0-9]/g, ""),
+    [normalizedType]
+  );
 
   const isBot = !isInfraredRemote && normalizedType === "bot";
   const isPlug = !isInfraredRemote && normalizedType.includes("plug");
   const isCurtain = !isInfraredRemote && (normalizedType.includes("curtain") || normalizedType.includes("blind tilt"));
   const isLock = !isInfraredRemote && normalizedType.includes("lock");
-  const isCeilingLight = !isInfraredRemote && definition?.key === "ceilingLight";
+  const isCeilingLight = !isInfraredRemote && (definition?.key === "ceilingLight" || normalizedTypeCompact.includes("ceilinglight"));
   const isFloorLamp = !isInfraredRemote && normalizedType.includes("floor lamp");
   const isStripLight3 = !isInfraredRemote && normalizedType.includes("strip light 3");
   const isStripLight = !isInfraredRemote && normalizedType.includes("strip light");
@@ -515,7 +519,13 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
               <Button
                 size="small"
                 variant="contained"
-                onClick={() => sendCommand("turnOn")}
+                onClick={() => {
+                  if (isCeilingLight) {
+                    sendCommand("setBrightness", Math.round(clamp(brightness, 1, 100)));
+                    return;
+                  }
+                  sendCommand("turnOn");
+                }}
                 disabled={controlsDisabled}
                 fullWidth
               >
@@ -843,7 +853,13 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
               <Button
                 size="small"
                 variant="contained"
-                onClick={() => sendCommand("turnOn")}
+                onClick={() => {
+                  if (isCeilingLight) {
+                    sendCommand("setBrightness", Math.round(clamp(brightness, 1, 100)));
+                    return;
+                  }
+                  sendCommand("turnOn");
+                }}
                 disabled={controlsDisabled}
                 fullWidth
               >
