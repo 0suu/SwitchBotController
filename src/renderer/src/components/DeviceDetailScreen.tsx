@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
@@ -11,6 +11,8 @@ import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import IconButton from "@mui/material/IconButton";
+import Switch from "@mui/material/Switch";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
@@ -26,7 +28,7 @@ import {
   setSelectedDeviceError,
 } from "../store/slices/deviceSlice";
 import { selectIsTokenValidated } from "../store/slices/settingsSlice";
-import { DeviceControls } from "./DeviceControls";
+import { DeviceControls, getConfirmCommandStorageKey } from "./DeviceControls";
 import { useTranslation } from "../useTranslation";
 
 interface DeviceDetailScreenProps {
@@ -43,6 +45,12 @@ export const DeviceDetailScreen: React.FC<DeviceDetailScreenProps> = ({ deviceId
   const statusError = useSelector(selectSelectedDeviceError);
   const isTokenValid = useSelector(selectIsTokenValidated);
   const isVirtualRemote = deviceDetails ? (deviceDetails as any).isInfraredRemote : false;
+  const [confirmOnOffPressActions, setConfirmOnOffPressActions] = useState(false);
+  const deviceTypeKey = useMemo(() => {
+    const rawType = deviceDetails?.deviceType || (deviceDetails as any)?.remoteType || "";
+    return rawType.toLowerCase();
+  }, [deviceDetails]);
+  const supportsConfirmToggle = !!deviceDetails && !isVirtualRemote && (deviceTypeKey === "bot" || deviceTypeKey.includes("plug"));
 
   useEffect(() => {
     if (deviceId && isTokenValid && !isVirtualRemote) {
@@ -57,8 +65,40 @@ export const DeviceDetailScreen: React.FC<DeviceDetailScreenProps> = ({ deviceId
     };
   }, [dispatch, deviceId, isTokenValid, isVirtualRemote, t]);
 
+  useEffect(() => {
+    let isActive = true;
+    const loadConfirmationSetting = async () => {
+      if (!deviceId) {
+        setConfirmOnOffPressActions(false);
+        return;
+      }
+      try {
+        const stored = await window.electronStore.get(getConfirmCommandStorageKey(deviceId));
+        if (!isActive) return;
+        setConfirmOnOffPressActions(typeof stored === "boolean" ? stored : false);
+      } catch (error) {
+        console.error("Failed to load confirmation setting:", error);
+        if (isActive) setConfirmOnOffPressActions(false);
+      }
+    };
+    loadConfirmationSetting();
+    return () => {
+      isActive = false;
+    };
+  }, [deviceId]);
+
   const handleRefreshStatus = () => {
     if (deviceId && isTokenValid && !isVirtualRemote) dispatch(fetchDeviceStatus(deviceId));
+  };
+
+  const handleConfirmToggleChange = async (_event: React.ChangeEvent<HTMLInputElement>, checked: boolean) => {
+    setConfirmOnOffPressActions(checked);
+    if (!deviceId) return;
+    try {
+      await window.electronStore.set(getConfirmCommandStorageKey(deviceId), checked);
+    } catch (error) {
+      console.error("Failed to save confirmation setting:", error);
+    }
   };
 
   if (!deviceId) {
@@ -103,7 +143,30 @@ export const DeviceDetailScreen: React.FC<DeviceDetailScreenProps> = ({ deviceId
           <Typography variant="h6" gutterBottom fontWeight="bold">
             {t("Controls")}
           </Typography>
-          <DeviceControls device={deviceDetails} status={status} showCustomCommands showChildLockControls />
+          {supportsConfirmToggle && (
+            <Box sx={{ mb: 2 }}>
+              <FormControlLabel
+                control={(
+                  <Switch
+                    checked={confirmOnOffPressActions}
+                    onChange={handleConfirmToggleChange}
+                    inputProps={{ "aria-label": t("Confirm on/off/press actions") }}
+                  />
+                )}
+                label={t("Confirm on/off/press actions")}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", ml: 1.5 }}>
+                {t("Show confirmation dialog before executing on/off/press actions.")}
+              </Typography>
+            </Box>
+          )}
+          <DeviceControls
+            device={deviceDetails}
+            status={status}
+            showCustomCommands
+            showChildLockControls
+            confirmOnOffPressActions={supportsConfirmToggle ? confirmOnOffPressActions : false}
+          />
         </Paper>
       )}
 
