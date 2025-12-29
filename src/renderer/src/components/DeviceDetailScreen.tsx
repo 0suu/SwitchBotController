@@ -103,7 +103,7 @@ export const DeviceDetailScreen: React.FC<DeviceDetailScreenProps> = ({ deviceId
           <Typography variant="h6" gutterBottom fontWeight="bold">
             {t("Controls")}
           </Typography>
-          <DeviceControls device={deviceDetails} status={status} showCustomCommands />
+          <DeviceControls device={deviceDetails} status={status} showCustomCommands showChildLockControls />
         </Paper>
       )}
 

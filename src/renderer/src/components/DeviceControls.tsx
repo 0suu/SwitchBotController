@@ -42,6 +42,7 @@ interface DeviceControlsProps {
   dense?: boolean;
   showCustomCommands?: boolean;
   showNightLightInstruction?: boolean;
+  showChildLockControls?: boolean;
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -62,6 +63,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
   dense = false,
   showCustomCommands = true,
   showNightLightInstruction = true,
+  showChildLockControls = false,
 }) => {
   const dispatch: AppDispatch = useDispatch();
   const isSending = useSelector((state: RootState) => selectIsCommandSendingForDevice(state, device.deviceId));
@@ -969,7 +971,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
                 </Box>
               </>
             )}
-            {isEvaporativeHumidifier && (
+            {isEvaporativeHumidifier && showChildLockControls && (
               <Box sx={buttonGridSx}>
                 <Button
                   size="small"
