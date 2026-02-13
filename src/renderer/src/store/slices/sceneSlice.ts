@@ -140,8 +140,12 @@ const scenesSlice = createSlice({
     clearSceneExecutionError: (state, action: PayloadAction<string>) => {
       delete state.executionErrorById[action.payload];
     },
-    clearScenesState: () => ({
+    clearScenesState: (state) => ({
       ...initialState,
+      nightLightSceneMap: state.nightLightSceneMap,
+      nightLightScenesLoaded: state.nightLightScenesLoaded,
+      sceneOrder: state.sceneOrder,
+      sceneOrderLoaded: state.sceneOrderLoaded,
     }),
     setSceneOrder: (state, action: PayloadAction<string[]>) => {
       state.sceneOrder = action.payload;
