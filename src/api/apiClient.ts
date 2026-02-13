@@ -2,19 +2,11 @@
 import {
   DeviceListResponseBody,
   DeviceStatusResponseBody,
-  AnyDevice,
   SceneListResponseBody,
   SceneExecuteResponseBody,
 } from "./types"; // Assuming AnyDevice might be useful for command types
 import { isMockMode } from "../appMode";
 import { mockSwitchBotBridge } from "./mockSwitchBotBridge";
-
-// We're no longer using direct Axios requests, so we don't need these imports
-// import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from "axios";
-// import CryptoJS from "crypto-js";
-
-// We're now using the IPC bridge to communicate with the main process
-// const API_BASE_URL = "https://api.switch-bot.com/v1.1";
 
 // Define common command types (can be expanded)
 export interface CommandRequestBody {
@@ -54,7 +46,6 @@ export class SwitchBotAPI {
   private secret: string | null = null;
 
   constructor() {
-    // No need to initialize axios client or interceptors
     // We'll use the IPC bridge to communicate with the main process
   }
 
@@ -204,13 +195,6 @@ export class SwitchBotAPI {
       console.error(`Error executing scene ${sceneId}:`, error);
       throw new Error(error.message || `An unexpected error occurred while executing scene ${sceneId}`);
     }
-  }
-
-  // We no longer need the handleApiError method since we're handling errors directly in each method
-  // and we're no longer using Axios directly
-  private handleApiError(error: any) {
-    console.error("API Error:", error);
-    throw new Error(error.message || "An unexpected API error occurred.");
   }
 }
 
