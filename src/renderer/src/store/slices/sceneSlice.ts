@@ -23,7 +23,11 @@ const NIGHT_LIGHT_SCENE_STORAGE_KEY = "nightLightSceneAssignments";
 
 const persistSceneOrder = (order: string[]) => {
   try {
-    void window.electronStore.set(SCENE_ORDER_STORAGE_KEY, order);
+    void window.electronStore.set(SCENE_ORDER_STORAGE_KEY, order).then((result) => {
+      if (result && !result.success) {
+        console.error("Failed to persist scene order:", result.error || "Unknown error");
+      }
+    });
   } catch (error) {
     console.error("Failed to persist scene order:", error);
   }
@@ -31,7 +35,11 @@ const persistSceneOrder = (order: string[]) => {
 
 const persistNightLightScenes = (map: Record<string, string | undefined>) => {
   try {
-    void window.electronStore.set(NIGHT_LIGHT_SCENE_STORAGE_KEY, map);
+    void window.electronStore.set(NIGHT_LIGHT_SCENE_STORAGE_KEY, map).then((result) => {
+      if (result && !result.success) {
+        console.error("Failed to persist night-light scene assignments:", result.error || "Unknown error");
+      }
+    });
   } catch (error) {
     console.error("Failed to persist night-light scene assignments:", error);
   }
@@ -148,9 +156,10 @@ const scenesSlice = createSlice({
       sceneOrderLoaded: state.sceneOrderLoaded,
     }),
     setSceneOrder: (state, action: PayloadAction<string[]>) => {
-      state.sceneOrder = action.payload;
+      const nextOrder = [...action.payload];
+      state.sceneOrder = nextOrder;
       state.sceneOrderLoaded = true;
-      persistSceneOrder(state.sceneOrder);
+      persistSceneOrder(nextOrder);
     },
     setNightLightSceneForDevice: (state, action: PayloadAction<{ deviceId: string; sceneId: string | null }>) => {
       const { deviceId, sceneId } = action.payload;
@@ -159,7 +168,7 @@ const scenesSlice = createSlice({
       } else {
         delete state.nightLightSceneMap[deviceId];
       }
-      persistNightLightScenes(state.nightLightSceneMap);
+      persistNightLightScenes({ ...state.nightLightSceneMap });
     },
   },
   extraReducers: (builder) => {

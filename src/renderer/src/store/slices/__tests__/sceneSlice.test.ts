@@ -5,6 +5,7 @@ import scenesReducer, {
   setSceneOrder,
   ScenesState,
 } from '../sceneSlice';
+import { isDraft } from "immer";
 
 describe('sceneSlice reducers', () => {
   const initialState: ScenesState = {
@@ -26,11 +27,19 @@ describe('sceneSlice reducers', () => {
   });
 
   it('should handle setNightLightSceneForDevice to assign a scene', () => {
+    const setSpy = window.electronStore.set as jest.Mock;
+    setSpy.mockClear();
     const actual = scenesReducer(
       initialState,
       setNightLightSceneForDevice({ deviceId: 'device-123', sceneId: 'scene-456' })
     );
     expect(actual.nightLightSceneMap['device-123']).toEqual('scene-456');
+    expect(setSpy).toHaveBeenCalledWith(
+      'nightLightSceneAssignments',
+      expect.objectContaining({ 'device-123': 'scene-456' })
+    );
+    const persistedMap = setSpy.mock.calls[setSpy.mock.calls.length - 1]?.[1];
+    expect(isDraft(persistedMap)).toBe(false);
   });
 
   it('should handle setNightLightSceneForDevice to clear a scene assignment', () => {
@@ -46,10 +55,13 @@ describe('sceneSlice reducers', () => {
   });
 
   it('should handle setSceneOrder', () => {
+    const setSpy = window.electronStore.set as jest.Mock;
+    setSpy.mockClear();
     const sceneOrder = ['scene-1', 'scene-2', 'scene-3'];
     const actual = scenesReducer(initialState, setSceneOrder(sceneOrder));
     expect(actual.sceneOrder).toEqual(sceneOrder);
     expect(actual.sceneOrderLoaded).toBe(true);
+    expect(setSpy).toHaveBeenCalledWith('sceneOrder', sceneOrder);
   });
 
   it('should preserve night light scene assignments when clearing scenes state', () => {
