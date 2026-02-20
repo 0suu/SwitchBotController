@@ -5,6 +5,10 @@ import { DeviceControlProps } from "./DeviceControls.types";
 import { SectionLabel, clamp } from "./utils";
 import { useDeviceType } from "../../hooks/useDeviceType";
 import { CustomCommandControls } from "./CustomCommandControls";
+import {
+  COMMAND_TURN_OFF,
+  COMMAND_TURN_ON,
+} from "../../constants/commandConstants";
 
 export const InfraredRemoteControls: React.FC<DeviceControlProps> = (props) => {
   const { device, sendCommand, controlsDisabled, dense, showCustomCommands } = props;
@@ -52,7 +56,7 @@ export const InfraredRemoteControls: React.FC<DeviceControlProps> = (props) => {
           <Button
             size="small"
             variant="contained"
-            onClick={() => sendCommand("turnOn")}
+            onClick={() => sendCommand(COMMAND_TURN_ON)}
             disabled={controlsDisabled}
             fullWidth
           >
@@ -62,7 +66,7 @@ export const InfraredRemoteControls: React.FC<DeviceControlProps> = (props) => {
             size="small"
             variant="contained"
             color="secondary"
-            onClick={() => sendCommand("turnOff")}
+            onClick={() => sendCommand(COMMAND_TURN_OFF)}
             disabled={controlsDisabled}
             fullWidth
           >

@@ -1,3 +1,16 @@
+import {
+  COMMAND_PRESS,
+  COMMAND_SET_BRIGHTNESS,
+  COMMAND_SET_COLOR,
+  COMMAND_SET_COLOR_TEMPERATURE,
+  COMMAND_SET_MODE,
+  COMMAND_SET_POSITION,
+  COMMAND_TOGGLE,
+  COMMAND_TURN_OFF,
+  COMMAND_TURN_ON,
+} from "./constants/commandConstants";
+import type { CommandType } from "./constants/commandConstants";
+
 export type ParameterSpec =
   | {
       type: "none";
@@ -30,7 +43,7 @@ export interface DeviceCommandDefinition {
   label: string;
   command: string;
   description?: string;
-  commandType?: "command" | "customize";
+  commandType?: CommandType;
   parameter?: ParameterSpec;
 }
 
@@ -71,21 +84,21 @@ const definitions: DeviceDefinition[] = [
     key: "bot",
     matchers: ["bot"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
-      { label: "Press", command: "press" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
+      { label: "Press", command: COMMAND_PRESS },
     ],
   },
   {
     key: "curtain",
     matchers: ["curtain 3", "curtain"],
     commands: [
-      { label: "Open", command: "turnOn" },
+      { label: "Open", command: COMMAND_TURN_ON },
       { label: "Pause", command: "pause" },
-      { label: "Close", command: "turnOff" },
+      { label: "Close", command: COMMAND_TURN_OFF },
       {
         label: "Set Position",
-        command: "setPosition",
+        command: COMMAND_SET_POSITION,
         parameter: {
           type: "range",
           min: 0,
@@ -109,7 +122,7 @@ const definitions: DeviceDefinition[] = [
     commands: [
       {
         label: "Set Position",
-        command: "setPosition",
+        command: COMMAND_SET_POSITION,
         parameter: {
           type: "text",
           defaultValue: "up;100",
@@ -134,7 +147,7 @@ const definitions: DeviceDefinition[] = [
     commands: [
       {
         label: "Set Position",
-        command: "setPosition",
+        command: COMMAND_SET_POSITION,
         parameter: { type: "range", min: 0, max: 100, defaultValue: 0, displayFormatter: (v) => `${Math.round(v)}%` },
       },
     ],
@@ -170,8 +183,8 @@ const definitions: DeviceDefinition[] = [
     key: "plug",
     matchers: ["plug mini (us)", "plug mini (jp)", "plug mini (eu)", "plug mini", "plug"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
     ],
     statusFields: [
       {
@@ -203,12 +216,12 @@ const definitions: DeviceDefinition[] = [
     key: "relaySwitchSingle",
     matchers: ["relay switch 1pm", "relay switch 1"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
-      { label: "Toggle", command: "toggle" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
+      { label: "Toggle", command: COMMAND_TOGGLE },
       {
         label: "Set Mode",
-        command: "setMode",
+        command: COMMAND_SET_MODE,
         parameter: {
           type: "enum",
           options: [
@@ -227,15 +240,15 @@ const definitions: DeviceDefinition[] = [
     key: "relaySwitchDual",
     matchers: ["relay switch 2pm"],
     commands: [
-      { label: "Turn On (ch1)", command: "turnOn", parameter: { type: "text", defaultValue: "1" } },
-      { label: "Turn On (ch2)", command: "turnOn", parameter: { type: "text", defaultValue: "2" } },
-      { label: "Turn Off (ch1)", command: "turnOff", parameter: { type: "text", defaultValue: "1" } },
-      { label: "Turn Off (ch2)", command: "turnOff", parameter: { type: "text", defaultValue: "2" } },
-      { label: "Toggle (ch1)", command: "toggle", parameter: { type: "text", defaultValue: "1" } },
-      { label: "Toggle (ch2)", command: "toggle", parameter: { type: "text", defaultValue: "2" } },
+      { label: "Turn On (ch1)", command: COMMAND_TURN_ON, parameter: { type: "text", defaultValue: "1" } },
+      { label: "Turn On (ch2)", command: COMMAND_TURN_ON, parameter: { type: "text", defaultValue: "2" } },
+      { label: "Turn Off (ch1)", command: COMMAND_TURN_OFF, parameter: { type: "text", defaultValue: "1" } },
+      { label: "Turn Off (ch2)", command: COMMAND_TURN_OFF, parameter: { type: "text", defaultValue: "2" } },
+      { label: "Toggle (ch1)", command: COMMAND_TOGGLE, parameter: { type: "text", defaultValue: "1" } },
+      { label: "Toggle (ch2)", command: COMMAND_TOGGLE, parameter: { type: "text", defaultValue: "2" } },
       {
         label: "Set Mode",
-        command: "setMode",
+        command: COMMAND_SET_MODE,
         parameter: {
           type: "text",
           defaultValue: "1;0",
@@ -245,7 +258,7 @@ const definitions: DeviceDefinition[] = [
       },
       {
         label: "Set Position",
-        command: "setPosition",
+        command: COMMAND_SET_POSITION,
         parameter: { type: "range", min: 0, max: 100, defaultValue: 0, displayFormatter: (v) => `${Math.round(v)}%` },
       },
     ],
@@ -255,19 +268,19 @@ const definitions: DeviceDefinition[] = [
     key: "garageDoor",
     matchers: ["garage door opener"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
     ],
   },
   {
     key: "humidifier",
     matchers: ["humidifier"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
       {
         label: "Set Mode",
-        command: "setMode",
+        command: COMMAND_SET_MODE,
         parameter: {
           type: "text",
           defaultValue: "auto",
@@ -288,11 +301,11 @@ const definitions: DeviceDefinition[] = [
     key: "evaporativeHumidifier",
     matchers: ["humidifier2", "evaporative humidifier"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
       {
         label: "Set Mode",
-        command: "setMode",
+        command: COMMAND_SET_MODE,
         parameter: {
           type: "text",
           defaultValue: '{"mode":1,"targetHumidify":60}',
@@ -326,11 +339,11 @@ const definitions: DeviceDefinition[] = [
     key: "airPurifier",
     matchers: ["air purifier voc", "air purifier table voc", "air purifier pm2.5", "air purifier table pm2.5"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
       {
         label: "Set Mode",
-        command: "setMode",
+        command: COMMAND_SET_MODE,
         parameter: {
           type: "text",
           defaultValue: '{"mode":1,"fanGear":1}',
@@ -361,11 +374,11 @@ const definitions: DeviceDefinition[] = [
     key: "smartRadiator",
     matchers: ["smart radiato thermostat", "smart radiator thermostat"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
       {
         label: "Set Mode",
-        command: "setMode",
+        command: COMMAND_SET_MODE,
         parameter: {
           type: "range",
           min: 0,
@@ -385,8 +398,8 @@ const definitions: DeviceDefinition[] = [
     key: "fan",
     matchers: ["battery circulator fan", "circulator fan", "smart fan", "fan"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
       {
         label: "Nightlight",
         command: "setNightLightMode",
@@ -604,13 +617,13 @@ const definitions: DeviceDefinition[] = [
     key: "ceilingLight",
     matchers: ["ceiling light pro", "ceiling light", "woceilingpro", "woceiling"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
-      { label: "Toggle", command: "toggle" },
-      { label: "Brightness", command: "setBrightness", parameter: { type: "range", min: 1, max: 100, defaultValue: 80 } },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
+      { label: "Toggle", command: COMMAND_TOGGLE },
+      { label: "Brightness", command: COMMAND_SET_BRIGHTNESS, parameter: { type: "range", min: 1, max: 100, defaultValue: 80 } },
       {
         label: "Color Temperature",
-        command: "setColorTemperature",
+        command: COMMAND_SET_COLOR_TEMPERATURE,
         parameter: { type: "range", min: 2700, max: 6500, step: 100, defaultValue: 4000, displayFormatter: (v) => `${Math.round(v)}K` },
       },
     ],
@@ -633,17 +646,17 @@ const definitions: DeviceDefinition[] = [
       "rgbic rope",
     ],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
-      { label: "Toggle", command: "toggle" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
+      { label: "Toggle", command: COMMAND_TOGGLE },
       {
         label: "Brightness",
-        command: "setBrightness",
+        command: COMMAND_SET_BRIGHTNESS,
         parameter: { type: "range", min: 0, max: 100, defaultValue: 80, displayFormatter: (v) => `${Math.round(v)}%` },
       },
       {
         label: "Color Temperature",
-        command: "setColorTemperature",
+        command: COMMAND_SET_COLOR_TEMPERATURE,
         parameter: {
           type: "range",
           min: 2700,
@@ -655,7 +668,7 @@ const definitions: DeviceDefinition[] = [
       },
       {
         label: "Color",
-        command: "setColor",
+        command: COMMAND_SET_COLOR,
         parameter: {
           type: "text",
           defaultValue: "255:255:255",
@@ -673,17 +686,17 @@ const definitions: DeviceDefinition[] = [
     key: "stripLight",
     matchers: ["strip light"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
-      { label: "Toggle", command: "toggle" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
+      { label: "Toggle", command: COMMAND_TOGGLE },
       {
         label: "Brightness",
-        command: "setBrightness",
+        command: COMMAND_SET_BRIGHTNESS,
         parameter: { type: "range", min: 1, max: 100, defaultValue: 80, displayFormatter: (v) => `${Math.round(v)}%` },
       },
       {
         label: "Color",
-        command: "setColor",
+        command: COMMAND_SET_COLOR,
         parameter: {
           type: "text",
           defaultValue: "255:255:255",
@@ -700,18 +713,18 @@ const definitions: DeviceDefinition[] = [
     key: "colorBulb",
     matchers: ["color bulb"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
-      { label: "Toggle", command: "toggle" },
-      { label: "Brightness", command: "setBrightness", parameter: { type: "range", min: 1, max: 100, defaultValue: 80 } },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
+      { label: "Toggle", command: COMMAND_TOGGLE },
+      { label: "Brightness", command: COMMAND_SET_BRIGHTNESS, parameter: { type: "range", min: 1, max: 100, defaultValue: 80 } },
       {
         label: "Color",
-        command: "setColor",
+        command: COMMAND_SET_COLOR,
         parameter: { type: "text", defaultValue: "255:255:255", placeholder: "R:G:B" },
       },
       {
         label: "Color Temperature",
-        command: "setColorTemperature",
+        command: COMMAND_SET_COLOR_TEMPERATURE,
         parameter: { type: "range", min: 2700, max: 6500, step: 100, defaultValue: 4000 },
       },
     ],
@@ -819,22 +832,22 @@ const definitions: DeviceDefinition[] = [
     key: "stripLight3",
     matchers: ["strip light 3", "led strip light 3"],
     commands: [
-      { label: "Turn On", command: "turnOn" },
-      { label: "Turn Off", command: "turnOff" },
-      { label: "Toggle", command: "toggle" },
+      { label: "Turn On", command: COMMAND_TURN_ON },
+      { label: "Turn Off", command: COMMAND_TURN_OFF },
+      { label: "Toggle", command: COMMAND_TOGGLE },
       {
         label: "Brightness",
-        command: "setBrightness",
+        command: COMMAND_SET_BRIGHTNESS,
         parameter: { type: "range", min: 0, max: 100, defaultValue: 80, displayFormatter: (v) => `${Math.round(v)}%` },
       },
       {
         label: "Color",
-        command: "setColor",
+        command: COMMAND_SET_COLOR,
         parameter: { type: "text", defaultValue: "255:255:255", placeholder: "R:G:B" },
       },
       {
         label: "Color Temperature",
-        command: "setColorTemperature",
+        command: COMMAND_SET_COLOR_TEMPERATURE,
         parameter: { type: "range", min: 2700, max: 6500, defaultValue: 4000, step: 100 },
       },
     ],

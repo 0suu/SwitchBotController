@@ -2,6 +2,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { switchBotApi, CommandResponseBody } from "../../../../api/apiClient";
 import { AnyDevice, DeviceListResponseBody, DeviceStatusResponseBody, InfraredRemote } from "../../../../api/types";
+import type { CommandType } from "../../constants/commandConstants";
 import { RootState } from "../store";
 import { isMockMode } from "../../../../appMode";
 
@@ -162,7 +163,7 @@ export const fetchDeviceStatus = createAsyncThunk(
 export const sendDeviceCommand = createAsyncThunk(
   "devices/sendCommand",
   async (
-    payload: { deviceId: string; command: string; parameter?: any; commandType?: "command" | "customize" },
+    payload: { deviceId: string; command: string; parameter?: any; commandType?: CommandType },
     { getState, dispatch, rejectWithValue }
   ) => {
     const { deviceId, command, parameter, commandType } = payload;

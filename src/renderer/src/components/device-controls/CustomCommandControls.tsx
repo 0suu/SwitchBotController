@@ -11,6 +11,12 @@ import {
 import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { useDeviceType } from "../../hooks/useDeviceType";
+import {
+  COMMAND_TYPE_COMMAND,
+  COMMAND_TYPE_CUSTOMIZE,
+  DEFAULT_PARAMETER,
+  type CommandType,
+} from "../../constants/commandConstants";
 
 export const CustomCommandControls: React.FC<DeviceControlProps> = ({
   device,
@@ -21,10 +27,10 @@ export const CustomCommandControls: React.FC<DeviceControlProps> = ({
   const { t } = useTranslation();
   const { isInfraredRemote } = useDeviceType(device);
   const [customCommand, setCustomCommand] = useState("");
-  const [customParameter, setCustomParameter] = useState("default");
-  const [customCommandType, setCustomCommandType] = useState<
-    "command" | "customize"
-  >("command");
+  const [customParameter, setCustomParameter] = useState(DEFAULT_PARAMETER);
+  const [customCommandType, setCustomCommandType] = useState<CommandType>(
+    COMMAND_TYPE_COMMAND
+  );
 
   const maxControlWidth = dense ? 360 : 520;
 
@@ -63,11 +69,11 @@ export const CustomCommandControls: React.FC<DeviceControlProps> = ({
             size="small"
             value={customCommandType}
             onChange={(e) =>
-              setCustomCommandType(e.target.value as "command" | "customize")
+              setCustomCommandType(e.target.value as CommandType)
             }
           >
-            <MenuItem value="command">command</MenuItem>
-            <MenuItem value="customize">
+            <MenuItem value={COMMAND_TYPE_COMMAND}>command</MenuItem>
+            <MenuItem value={COMMAND_TYPE_CUSTOMIZE}>
               customize (for user-defined buttons)
             </MenuItem>
           </TextField>
@@ -79,7 +85,7 @@ export const CustomCommandControls: React.FC<DeviceControlProps> = ({
           onClick={() =>
             sendCommand(
               customCommand,
-              customParameter || "default",
+              customParameter || DEFAULT_PARAMETER,
               isInfraredRemote ? customCommandType : undefined
             )
           }

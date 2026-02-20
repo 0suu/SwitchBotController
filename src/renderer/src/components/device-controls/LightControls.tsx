@@ -13,6 +13,14 @@ import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { clamp, hexToRgbParameter, SectionLabel } from "./utils";
 import { useDeviceType } from "../../hooks/useDeviceType";
+import {
+  COMMAND_SET_BRIGHTNESS,
+  COMMAND_SET_COLOR,
+  COMMAND_SET_COLOR_TEMPERATURE,
+  COMMAND_TOGGLE,
+  COMMAND_TURN_OFF,
+  COMMAND_TURN_ON,
+} from "../../constants/commandConstants";
 import { AppDispatch, RootState } from "../../store/store";
 import { selectIsTokenValidated } from "../../store/slices/settingsSlice";
 import {
@@ -156,10 +164,13 @@ export const LightControls: React.FC<DeviceControlProps> = ({
           variant="contained"
           onClick={() => {
             if (isCeilingLight) {
-              sendCommand("setBrightness", Math.round(clamp(brightness, 1, 100)));
+              sendCommand(
+                COMMAND_SET_BRIGHTNESS,
+                Math.round(clamp(brightness, 1, 100))
+              );
               return;
             }
-            sendCommand("turnOn");
+            sendCommand(COMMAND_TURN_ON);
           }}
           disabled={controlsDisabled}
           fullWidth
@@ -170,7 +181,7 @@ export const LightControls: React.FC<DeviceControlProps> = ({
           size="small"
           variant="contained"
           color="secondary"
-          onClick={() => sendCommand("turnOff")}
+          onClick={() => sendCommand(COMMAND_TURN_OFF)}
           disabled={controlsDisabled}
           fullWidth
         >
@@ -180,7 +191,7 @@ export const LightControls: React.FC<DeviceControlProps> = ({
           <Button
             size="small"
             variant="outlined"
-            onClick={() => sendCommand("toggle")}
+            onClick={() => sendCommand(COMMAND_TOGGLE)}
             disabled={controlsDisabled}
             fullWidth
           >
@@ -230,7 +241,7 @@ export const LightControls: React.FC<DeviceControlProps> = ({
             max={100}
             onChange={(_, value) => setBrightness(value as number)}
             onChangeCommitted={(_, value) =>
-              sendCommand("setBrightness", Math.round(value as number))
+              sendCommand(COMMAND_SET_BRIGHTNESS, Math.round(value as number))
             }
             valueLabelDisplay="auto"
             aria-label="Brightness"
@@ -251,7 +262,10 @@ export const LightControls: React.FC<DeviceControlProps> = ({
             step={100}
             onChange={(_, value) => setColorTemp(value as number)}
             onChangeCommitted={(_, value) =>
-              sendCommand("setColorTemperature", Math.round(value as number))
+              sendCommand(
+                COMMAND_SET_COLOR_TEMPERATURE,
+                Math.round(value as number)
+              )
             }
             valueLabelDisplay="auto"
             aria-label="Color temperature"
@@ -279,7 +293,7 @@ export const LightControls: React.FC<DeviceControlProps> = ({
             disabled={controlsDisabled}
             onClick={() => {
               const rgb = hexToRgbParameter(color);
-              if (rgb) sendCommand("setColor", rgb);
+              if (rgb) sendCommand(COMMAND_SET_COLOR, rgb);
             }}
           >
             {t("Apply")}

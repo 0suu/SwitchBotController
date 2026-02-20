@@ -3,6 +3,11 @@ import { Box, Button, Chip, Stack } from "@mui/material";
 import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { SectionLabel } from "./utils";
+import {
+  COMMAND_PRESS,
+  COMMAND_TURN_OFF,
+  COMMAND_TURN_ON,
+} from "../../constants/commandConstants";
 
 export const BotControls: React.FC<DeviceControlProps> = ({
   device,
@@ -56,7 +61,7 @@ export const BotControls: React.FC<DeviceControlProps> = ({
           <Button
             size="small"
             variant="contained"
-            onClick={() => sendCommand("press")}
+            onClick={() => sendCommand(COMMAND_PRESS)}
             disabled={controlsDisabled}
             fullWidth
           >
@@ -69,7 +74,7 @@ export const BotControls: React.FC<DeviceControlProps> = ({
             <Button
               size="small"
               variant="contained"
-              onClick={() => sendCommand("turnOn")}
+              onClick={() => sendCommand(COMMAND_TURN_ON)}
               disabled={controlsDisabled}
               fullWidth
             >
@@ -81,7 +86,7 @@ export const BotControls: React.FC<DeviceControlProps> = ({
               size="small"
               variant="contained"
               color="secondary"
-              onClick={() => sendCommand("turnOff")}
+              onClick={() => sendCommand(COMMAND_TURN_OFF)}
               disabled={controlsDisabled}
               fullWidth
             >
@@ -92,7 +97,7 @@ export const BotControls: React.FC<DeviceControlProps> = ({
             <Button
               size="small"
               variant="contained"
-              onClick={() => sendCommand("press")}
+              onClick={() => sendCommand(COMMAND_PRESS)}
               disabled={controlsDisabled}
               fullWidth
             >

@@ -4,6 +4,11 @@ import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { clamp, SectionLabel } from "./utils";
 import { useDeviceType } from "../../hooks/useDeviceType";
+import {
+  COMMAND_SET_MODE,
+  COMMAND_TURN_OFF,
+  COMMAND_TURN_ON,
+} from "../../constants/commandConstants";
 
 export const HumidifierControls: React.FC<DeviceControlProps> = ({
   device,
@@ -45,7 +50,7 @@ export const HumidifierControls: React.FC<DeviceControlProps> = ({
         dry: 8,
       };
       if (mode in modeMap) {
-        sendCommand("setMode", {
+        sendCommand(COMMAND_SET_MODE, {
           mode: modeMap[mode as EvaporativeModeKey],
           targetHumidify: safeTarget,
         });
@@ -54,7 +59,7 @@ export const HumidifierControls: React.FC<DeviceControlProps> = ({
     }
 
     const modeMap = { auto: "auto", low: "101", medium: "102", high: "103" };
-    sendCommand("setMode", modeMap[mode as StandardHumidifierModeKey]);
+    sendCommand(COMMAND_SET_MODE, modeMap[mode as StandardHumidifierModeKey]);
   };
 
   const gridColumns = dense ? 2 : 3;
@@ -106,7 +111,7 @@ export const HumidifierControls: React.FC<DeviceControlProps> = ({
           size="small"
           variant="contained"
           color="primary"
-          onClick={() => sendCommand("turnOn")}
+          onClick={() => sendCommand(COMMAND_TURN_ON)}
           disabled={controlsDisabled}
           fullWidth
         >
@@ -116,7 +121,7 @@ export const HumidifierControls: React.FC<DeviceControlProps> = ({
           size="small"
           variant="contained"
           color="secondary"
-          onClick={() => sendCommand("turnOff")}
+          onClick={() => sendCommand(COMMAND_TURN_OFF)}
           disabled={controlsDisabled}
           fullWidth
         >
@@ -179,7 +184,7 @@ export const HumidifierControls: React.FC<DeviceControlProps> = ({
               step={1}
               onChange={(_, value) => setHumidifierLevel(value as number)}
               onChangeCommitted={(_, value) =>
-                sendCommand("setMode", clamp(value as number, 0, 100))
+                sendCommand(COMMAND_SET_MODE, clamp(value as number, 0, 100))
               }
               valueLabelDisplay="auto"
               aria-label="Atomization efficiency"

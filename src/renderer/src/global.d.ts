@@ -1,5 +1,6 @@
 // src/renderer/src/global.d.ts
 // This definition helps TypeScript understand objects exposed from preload script via contextBridge.
+import type { CommandType } from "./constants/commandConstants";
 
 // Assuming ElectronStoreAPI is exported from your preload script or its type definition file
 // If your preload.ts exports the type, you might do:
@@ -17,7 +18,12 @@ export interface ElectronStoreAPI {
 export interface SwitchBotBridgeAPI {
   getDevices: () => Promise<any>;
   getDeviceStatus: (deviceId: string) => Promise<any>;
-  sendCommand: (deviceId: string, command: string, parameter?: any, commandType?: "command" | "customize") => Promise<any>;
+  sendCommand: (
+    deviceId: string,
+    command: string,
+    parameter?: any,
+    commandType?: CommandType
+  ) => Promise<any>;
   getScenes: () => Promise<any>;
   executeScene: (sceneId: string) => Promise<any>;
 }

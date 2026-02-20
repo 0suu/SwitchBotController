@@ -12,6 +12,10 @@ import { DeviceControlProps } from "./DeviceControls.types";
 import { SectionLabel } from "./utils";
 import { useDeviceType } from "../../hooks/useDeviceType";
 import { DeviceCommandDefinition, ParameterSpec } from "../../deviceDefinitions";
+import {
+  COMMAND_TYPE_COMMAND,
+  DEFAULT_PARAMETER,
+} from "../../constants/commandConstants";
 
 export const DynamicControls: React.FC<DeviceControlProps> = ({
   device,
@@ -40,25 +44,25 @@ export const DynamicControls: React.FC<DeviceControlProps> = ({
 
   const resolveParameterValue = (cmd: DeviceCommandDefinition) => {
     const spec = cmd.parameter;
-    if (!spec || spec.type === "none") return "default";
+    if (!spec || spec.type === "none") return DEFAULT_PARAMETER;
     const raw = dynamicParams[cmd.command];
     if (spec.type === "range") {
       const numVal = Number(raw);
       const mapped = spec.mapValue ? spec.mapValue(numVal) : numVal;
       return mapped;
     }
-    if (spec.type === "enum") return raw ?? spec.defaultValue ?? "default";
+    if (spec.type === "enum") return raw ?? spec.defaultValue ?? DEFAULT_PARAMETER;
     if (spec.type === "text") {
       if (spec.parseAsJson) {
         try {
           return JSON.parse(raw || spec.defaultValue || "{}");
         } catch (e) {
-          return raw || spec.defaultValue || "default";
+          return raw || spec.defaultValue || DEFAULT_PARAMETER;
         }
       }
-      return raw ?? spec.defaultValue ?? "default";
+      return raw ?? spec.defaultValue ?? DEFAULT_PARAMETER;
     }
-    return raw ?? "default";
+    return raw ?? DEFAULT_PARAMETER;
   };
 
   const specNeedsMargin = (spec?: ParameterSpec) => !!spec && spec.type !== "none";
@@ -166,7 +170,7 @@ export const DynamicControls: React.FC<DeviceControlProps> = ({
                 sendCommand(
                   cmd.command,
                   resolveParameterValue(cmd),
-                  cmd.commandType || "command"
+                  cmd.commandType || COMMAND_TYPE_COMMAND
                 )
               }
             >

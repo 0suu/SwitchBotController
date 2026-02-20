@@ -24,6 +24,14 @@ import {
 import { selectIsTokenValidated } from "../store/slices/settingsSlice";
 import { useTranslation } from "../useTranslation";
 import { useDeviceType } from "../hooks/useDeviceType";
+import {
+  COMMAND_PRESS,
+  COMMAND_TURN_OFF,
+  COMMAND_TURN_ON,
+  COMMAND_TYPE_COMMAND,
+  DEFAULT_PARAMETER,
+  type CommandType,
+} from "../constants/commandConstants";
 import { getConfirmCommandStorageKey } from "./device-controls/utils";
 import { BotControls } from "./device-controls/BotControls";
 import { PlugControls } from "./device-controls/PlugControls";
@@ -92,7 +100,7 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
   const [pendingCommand, setPendingCommand] = useState<{
     command: string;
     parameter: any;
-    commandType: "command" | "customize";
+    commandType: CommandType;
   } | null>(null);
 
   useEffect(() => {
@@ -127,11 +135,11 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
 
   const confirmMessageForCommand = (command: string) => {
     switch (command) {
-      case "turnOn":
+      case COMMAND_TURN_ON:
         return t("Confirm turn on");
-      case "turnOff":
+      case COMMAND_TURN_OFF:
         return t("Confirm turn off");
-      case "press":
+      case COMMAND_PRESS:
         return t("Confirm press");
       default:
         return t("Confirm command");
@@ -142,12 +150,14 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
     resolvedConfirmOnOffPress &&
     !isInfraredRemote &&
     (isBot || isPlug) &&
-    (command === "turnOn" || command === "turnOff" || command === "press");
+    (command === COMMAND_TURN_ON ||
+      command === COMMAND_TURN_OFF ||
+      command === COMMAND_PRESS);
 
   const executeCommand = (
     command: string,
     parameter: any,
-    commandType: "command" | "customize"
+    commandType: CommandType
   ) => {
     dispatch(clearDeviceCommandError(device.deviceId));
     dispatch(
@@ -162,8 +172,8 @@ export const DeviceControls: React.FC<DeviceControlsProps> = ({
 
   const sendCommand: SendCommand = (
     command,
-    parameter = "default",
-    commandType = "command"
+    parameter = DEFAULT_PARAMETER,
+    commandType = COMMAND_TYPE_COMMAND
   ) => {
     if (shouldConfirmCommand(command)) {
       setPendingCommand({ command, parameter, commandType });

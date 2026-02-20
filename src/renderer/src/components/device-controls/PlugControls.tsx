@@ -3,6 +3,10 @@ import { Box, Button } from "@mui/material";
 import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { SectionLabel } from "./utils";
+import {
+  COMMAND_TURN_OFF,
+  COMMAND_TURN_ON,
+} from "../../constants/commandConstants";
 
 export const PlugControls: React.FC<DeviceControlProps> = ({
   sendCommand,
@@ -28,7 +32,7 @@ export const PlugControls: React.FC<DeviceControlProps> = ({
           size="small"
           variant="contained"
           color="primary"
-          onClick={() => sendCommand("turnOn")}
+          onClick={() => sendCommand(COMMAND_TURN_ON)}
           disabled={controlsDisabled}
           fullWidth
         >
@@ -38,7 +42,7 @@ export const PlugControls: React.FC<DeviceControlProps> = ({
           size="small"
           variant="contained"
           color="secondary"
-          onClick={() => sendCommand("turnOff")}
+          onClick={() => sendCommand(COMMAND_TURN_OFF)}
           disabled={controlsDisabled}
           fullWidth
         >

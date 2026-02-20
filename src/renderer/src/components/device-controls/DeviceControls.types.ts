@@ -1,9 +1,10 @@
 import { AnyDevice, DeviceStatusResponseBody } from "../../../../api/types";
+import type { CommandType } from "../../constants/commandConstants";
 
 export type SendCommand = (
   command: string,
   parameter?: any,
-  commandType?: "command" | "customize"
+  commandType?: CommandType
 ) => void;
 
 export interface DeviceControlProps {

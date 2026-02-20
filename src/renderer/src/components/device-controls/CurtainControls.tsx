@@ -3,6 +3,11 @@ import { Box, Button, Slider, Typography } from "@mui/material";
 import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { clamp, SectionLabel } from "./utils";
+import {
+  COMMAND_SET_POSITION,
+  COMMAND_TURN_OFF,
+  COMMAND_TURN_ON,
+} from "../../constants/commandConstants";
 
 export const CurtainControls: React.FC<DeviceControlProps> = ({
   sendCommand,
@@ -30,7 +35,7 @@ export const CurtainControls: React.FC<DeviceControlProps> = ({
         <Button
           size="small"
           variant="contained"
-          onClick={() => sendCommand("turnOn")}
+          onClick={() => sendCommand(COMMAND_TURN_ON)}
           disabled={controlsDisabled}
           fullWidth
         >
@@ -49,7 +54,7 @@ export const CurtainControls: React.FC<DeviceControlProps> = ({
           size="small"
           variant="contained"
           color="secondary"
-          onClick={() => sendCommand("turnOff")}
+          onClick={() => sendCommand(COMMAND_TURN_OFF)}
           disabled={controlsDisabled}
           fullWidth
         >
@@ -65,7 +70,10 @@ export const CurtainControls: React.FC<DeviceControlProps> = ({
           step={1}
           onChange={(_, value) => setPosition(value as number)}
           onChangeCommitted={(_, value) =>
-            sendCommand("setPosition", `0,ff,${clamp(value as number, 0, 100)}`)
+            sendCommand(
+              COMMAND_SET_POSITION,
+              `0,ff,${clamp(value as number, 0, 100)}`
+            )
           }
           valueLabelDisplay="auto"
           valueLabelFormat={sliderLabel}

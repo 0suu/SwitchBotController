@@ -3,6 +3,10 @@ import { Box, Button, Slider, Typography } from "@mui/material";
 import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { clamp, SectionLabel } from "./utils";
+import {
+  COMMAND_TURN_OFF,
+  COMMAND_TURN_ON,
+} from "../../constants/commandConstants";
 
 export const FanControls: React.FC<DeviceControlProps> = ({
   sendCommand,
@@ -30,7 +34,7 @@ export const FanControls: React.FC<DeviceControlProps> = ({
         <Button
           size="small"
           variant="contained"
-          onClick={() => sendCommand("turnOn")}
+          onClick={() => sendCommand(COMMAND_TURN_ON)}
           disabled={controlsDisabled}
           fullWidth
         >
@@ -40,7 +44,7 @@ export const FanControls: React.FC<DeviceControlProps> = ({
           size="small"
           variant="contained"
           color="secondary"
-          onClick={() => sendCommand("turnOff")}
+          onClick={() => sendCommand(COMMAND_TURN_OFF)}
           disabled={controlsDisabled}
           fullWidth
         >
