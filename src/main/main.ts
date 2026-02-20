@@ -9,8 +9,14 @@ interface AppSettings {
   apiToken?: string;
   apiSecret?: string;
   pollingIntervalSeconds?: number;
-  theme?: "light" | "dark";
+  theme?: "light" | "dark" | "system";
   logRetentionDays?: number;
+  language?: "en" | "ja";
+  deviceOrder?: string[];
+  sceneOrder?: string[];
+  nightLightSceneAssignments?: Record<string, string>;
+  lastView?: "list" | "settings" | "scenes";
+  confirmOnOffPressActions?: Record<string, boolean>;
 }
 
 const schema = {
@@ -19,6 +25,28 @@ const schema = {
   pollingIntervalSeconds: { type: "number", default: 60 },
   theme: { type: "string", default: "dark" },
   logRetentionDays: { type: "number", default: 7 },
+  language: { type: "string", default: "en" },
+  deviceOrder: {
+    type: "array",
+    items: { type: "string" },
+    default: [],
+  },
+  sceneOrder: {
+    type: "array",
+    items: { type: "string" },
+    default: [],
+  },
+  nightLightSceneAssignments: {
+    type: "object",
+    default: {},
+    additionalProperties: { type: "string" },
+  },
+  lastView: { type: "string", default: "list" },
+  confirmOnOffPressActions: {
+    type: "object",
+    default: {},
+    additionalProperties: { type: "boolean" },
+  },
 };
 
 // Initialize electron-store

@@ -83,11 +83,16 @@ const decrementCommandCounter = (state: CombinedDeviceState, deviceId: string | 
 const DEVICE_ORDER_STORAGE_KEY = "deviceOrder";
 
 const persistDeviceOrder = (order: string[]) => {
-  try {
-    void window.electronStore.set(DEVICE_ORDER_STORAGE_KEY, order);
-  } catch (error) {
-    console.error("Failed to persist device order:", error);
-  }
+  void window.electronStore
+    .set(DEVICE_ORDER_STORAGE_KEY, order)
+    .then((result) => {
+      if (result && !result.success) {
+        console.error("Failed to persist device order:", result.error || "Unknown error");
+      }
+    })
+    .catch((error) => {
+      console.error("Failed to persist device order:", error);
+    });
 };
 
 export const loadDeviceOrder = createAsyncThunk("devices/loadDeviceOrder", async () => {
@@ -287,9 +292,10 @@ export const deviceSlice = createSlice({
       }
     },
     setDeviceOrder: (state, action: PayloadAction<string[]>) => {
-      state.deviceOrder = action.payload;
+      const nextOrder = [...action.payload];
+      state.deviceOrder = nextOrder;
       state.deviceOrderLoaded = true;
-      persistDeviceOrder(state.deviceOrder);
+      persistDeviceOrder(nextOrder);
     },
   },
   extraReducers: (builder) => {

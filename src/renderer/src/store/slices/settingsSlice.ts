@@ -32,6 +32,39 @@ const initialState: SettingsState = {
   language: "en",
 };
 
+const persistSetting = (key: string, value: unknown, label: string) => {
+  void window.electronStore
+    .set(key, value)
+    .then((result) => {
+      if (result && !result.success) {
+        console.error(`Failed to persist ${label}:`, result.error || "Unknown error");
+      }
+    })
+    .catch((error) => {
+      console.error(`Failed to persist ${label}:`, error);
+    });
+};
+
+const deleteSetting = (key: string, label: string) => {
+  void window.electronStore
+    .delete(key)
+    .then((result) => {
+      if (result && !result.success) {
+        console.error(`Failed to delete ${label}:`, result.error || "Unknown error");
+      }
+    })
+    .catch((error) => {
+      console.error(`Failed to delete ${label}:`, error);
+    });
+};
+
+const setSettingOrThrow = async (key: string, value: unknown, label: string) => {
+  const result = await window.electronStore.set(key, value);
+  if (result && !result.success) {
+    throw new Error(result.error || `Failed to persist ${label}`);
+  }
+};
+
 // Thunk to load credentials from electron-store
 export const loadApiCredentials = createAsyncThunk(
   "settings/loadApiCredentials",
@@ -82,8 +115,8 @@ export const saveApiCredentials = createAsyncThunk(
       return payload;
     }
     try {
-      await window.electronStore.set("apiToken", payload.token);
-      await window.electronStore.set("apiSecret", payload.secret);
+      await setSettingOrThrow("apiToken", payload.token, "API token");
+      await setSettingOrThrow("apiSecret", payload.secret, "API secret");
       dispatch(setApiCredentials(payload));
       // Reset validation status and message
       dispatch(setTokenValidated(false));
@@ -158,8 +191,8 @@ export const validateAndSaveApiCredentials = createAsyncThunk(
 
     try {
       // Temporarily store the new credentials so the main process can use them
-      await window.electronStore.set("apiToken", token);
-      await window.electronStore.set("apiSecret", secret);
+      await setSettingOrThrow("apiToken", token, "API token");
+      await setSettingOrThrow("apiSecret", secret, "API secret");
       switchBotApi.setCredentials(token, secret);
       dispatch(setApiCredentials({ token, secret }));
 
@@ -174,10 +207,15 @@ export const validateAndSaveApiCredentials = createAsyncThunk(
 
       // Revert to previous credentials in both store and state
       if (previousToken && previousSecret) {
-        await window.electronStore.set("apiToken", previousToken);
-        await window.electronStore.set("apiSecret", previousSecret);
-        switchBotApi.setCredentials(previousToken, previousSecret);
-        dispatch(setApiCredentials({ token: previousToken, secret: previousSecret }));
+        try {
+          await setSettingOrThrow("apiToken", previousToken, "API token");
+          await setSettingOrThrow("apiSecret", previousSecret, "API secret");
+          switchBotApi.setCredentials(previousToken, previousSecret);
+          dispatch(setApiCredentials({ token: previousToken, secret: previousSecret }));
+        } catch (rollbackError) {
+          console.error("Failed to restore previous API credentials:", rollbackError);
+          dispatch(clearApiCredentials());
+        }
       } else {
         dispatch(clearApiCredentials());
       }
@@ -217,8 +255,8 @@ export const settingsSlice = createSlice({
       state.isTokenValidated = false;
       state.validationMessage = null;
       // Also clear from electron-store
-      window.electronStore.delete("apiToken");
-      window.electronStore.delete("apiSecret");
+      deleteSetting("apiToken", "API token");
+      deleteSetting("apiSecret", "API secret");
     },
     setTokenValidated: (state, action: PayloadAction<boolean>) => {
       state.isTokenValidated = action.payload;
@@ -228,15 +266,15 @@ export const settingsSlice = createSlice({
     },
     setPollingInterval: (state, action: PayloadAction<number>) => {
       state.pollingIntervalSeconds = action.payload;
-      window.electronStore.set("pollingIntervalSeconds", action.payload);
+      persistSetting("pollingIntervalSeconds", action.payload, "polling interval");
     },
     setTheme: (state, action: PayloadAction<"light" | "dark" | "system">) => {
       state.theme = action.payload;
-      window.electronStore.set("theme", action.payload);
+      persistSetting("theme", action.payload, "theme");
     },
     setLanguage: (state, action: PayloadAction<"en" | "ja">) => {
       state.language = action.payload;
-      window.electronStore.set("language", action.payload);
+      persistSetting("language", action.payload, "language");
     },
     // ... other reducers
   },
