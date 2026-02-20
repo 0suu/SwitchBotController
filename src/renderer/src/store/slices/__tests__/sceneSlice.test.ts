@@ -81,10 +81,16 @@ describe('sceneSlice reducers', () => {
     // Night light scene assignments and their loaded state should be preserved
     expect(actual.nightLightSceneMap).toEqual({ 'device-123': 'scene-456' });
     expect(actual.nightLightScenesLoaded).toBe(true);
+    expect(isDraft(actual.nightLightSceneMap)).toBe(false);
     
     // Scene order should be preserved
     expect(actual.sceneOrder).toEqual(['scene-1', 'scene-2']);
     expect(actual.sceneOrderLoaded).toBe(true);
+    expect(isDraft(actual.sceneOrder)).toBe(false);
+
+    // Preserved state should not keep references from previous state
+    expect(actual.nightLightSceneMap).not.toBe(stateWithData.nightLightSceneMap);
+    expect(actual.sceneOrder).not.toBe(stateWithData.sceneOrder);
     
     // Other state should be reset
     expect(actual.scenes).toEqual([]);

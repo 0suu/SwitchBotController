@@ -152,9 +152,9 @@ const scenesSlice = createSlice({
     },
     clearScenesState: (state) => ({
       ...initialState,
-      nightLightSceneMap: state.nightLightSceneMap,
+      nightLightSceneMap: { ...state.nightLightSceneMap },
       nightLightScenesLoaded: state.nightLightScenesLoaded,
-      sceneOrder: state.sceneOrder,
+      sceneOrder: [...state.sceneOrder],
       sceneOrderLoaded: state.sceneOrderLoaded,
     }),
     setSceneOrder: (state, action: PayloadAction<string[]>) => {
