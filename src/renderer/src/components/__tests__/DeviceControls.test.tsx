@@ -58,6 +58,19 @@ describe("DeviceControls", () => {
           apiSecret: "secret",
           isTokenValidated: true,
         }),
+        scenes: () => ({
+          scenes: [],
+          isLoading: false,
+          error: null,
+          executingById: {},
+          executionErrorById: {},
+          lastFetched: null,
+          lastExecutedSceneId: null,
+          sceneOrder: [],
+          sceneOrderLoaded: false,
+          nightLightSceneMap: {},
+          nightLightScenesLoaded: false,
+        }),
       },
     });
 
