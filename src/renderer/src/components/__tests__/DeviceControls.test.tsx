@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
 import { DeviceControls } from "../DeviceControls";
-import { AnyDevice } from "../../../api/types";
+import { AnyDevice } from "../../../../api/types";
 import {
   COMMAND_TURN_ON,
   COMMAND_TYPE_COMMAND,
@@ -84,7 +84,7 @@ describe("DeviceControls", () => {
 
     render(
       <Provider store={store}>
-        <DeviceControls device={mockDevice} />
+        <DeviceControls device={mockDevice} confirmOnOffPressActions={false} />
       </Provider>
     );
 
