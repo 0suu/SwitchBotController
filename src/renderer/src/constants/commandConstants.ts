@@ -1,6 +1,9 @@
 // Command types
 export const COMMAND_TYPE_COMMAND = "command" as const;
 export const COMMAND_TYPE_CUSTOMIZE = "customize" as const;
+export type CommandType =
+  | typeof COMMAND_TYPE_COMMAND
+  | typeof COMMAND_TYPE_CUSTOMIZE;
 
 // Parameter values
 export const DEFAULT_PARAMETER = "default";
