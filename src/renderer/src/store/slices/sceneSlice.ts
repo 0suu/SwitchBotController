@@ -22,27 +22,29 @@ const SCENE_ORDER_STORAGE_KEY = "sceneOrder";
 const NIGHT_LIGHT_SCENE_STORAGE_KEY = "nightLightSceneAssignments";
 
 const persistSceneOrder = (order: string[]) => {
-  try {
-    void window.electronStore.set(SCENE_ORDER_STORAGE_KEY, order).then((result) => {
+  void window.electronStore
+    .set(SCENE_ORDER_STORAGE_KEY, order)
+    .then((result) => {
       if (result && !result.success) {
         console.error("Failed to persist scene order:", result.error || "Unknown error");
       }
+    })
+    .catch((error) => {
+      console.error("Failed to persist scene order:", error);
     });
-  } catch (error) {
-    console.error("Failed to persist scene order:", error);
-  }
 };
 
 const persistNightLightScenes = (map: Record<string, string | undefined>) => {
-  try {
-    void window.electronStore.set(NIGHT_LIGHT_SCENE_STORAGE_KEY, map).then((result) => {
+  void window.electronStore
+    .set(NIGHT_LIGHT_SCENE_STORAGE_KEY, map)
+    .then((result) => {
       if (result && !result.success) {
         console.error("Failed to persist night-light scene assignments:", result.error || "Unknown error");
       }
+    })
+    .catch((error) => {
+      console.error("Failed to persist night-light scene assignments:", error);
     });
-  } catch (error) {
-    console.error("Failed to persist night-light scene assignments:", error);
-  }
 };
 
 const initialState: ScenesState = {
