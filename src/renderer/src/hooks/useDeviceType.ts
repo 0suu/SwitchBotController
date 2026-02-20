@@ -8,7 +8,7 @@ export const useDeviceType = (device: AnyDevice) => {
   const rawType = (device.deviceType || (device as any).remoteType || "").toLowerCase();
   const isInfraredRemote = !!(device as any).isInfraredRemote;
 
-  const normalizedType = useMemo(() => rawType, [rawType]);
+  const normalizedType = rawType;
   const normalizedTypeCompact = useMemo(
     () => normalizedType.replace(/[^a-z0-9]/g, ""),
     [normalizedType]
