@@ -111,7 +111,8 @@
         "zip"
       ],
       "icon": "assets/icon.icns",
-      "category": "public.utility"
+      "category": "public.utility",
+      "identity": null
     }
   }
 }
