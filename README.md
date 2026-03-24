@@ -1,6 +1,6 @@
 # SwitchBot Controller
 <p>
-  <img src="https://github.com/user-attachments/assets/11873232-5be8-41ab-8665-313066dca139" width="45%">
+  <img src="https://github.com/user-attachments/assets/5a33d24e-edf4-4516-959e-5ae83ae1589a"  width="45%"/>
   <img src="https://github.com/user-attachments/assets/77875e1d-b3d9-42e8-a9dd-1e8936c705c8" width="45%">
 </p>
 
