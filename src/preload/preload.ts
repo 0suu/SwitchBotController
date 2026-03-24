@@ -37,11 +37,51 @@ const switchBotBridgeApi: SwitchBotBridgeAPI = {
 contextBridge.exposeInMainWorld("electronStore", electronStoreApi);
 contextBridge.exposeInMainWorld("switchBotBridge", switchBotBridgeApi);
 
+// Auto-updater API
+export interface AutoUpdaterAPI {
+  checkForUpdates: () => Promise<{ success: boolean; version?: string; error?: string }>;
+  installUpdate: () => Promise<void>;
+  onUpdateAvailable: (callback: (info: { version: string }) => void) => () => void;
+  onUpdateDownloaded: (callback: (info: { version: string }) => void) => () => void;
+  onDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
+  onUpdateError: (callback: (info: { message: string }) => void) => () => void;
+  onUpdateNotAvailable: (callback: () => void) => () => void;
+}
+
+const autoUpdaterApi: AutoUpdaterAPI = {
+  checkForUpdates: () => ipcRenderer.invoke("updater-check"),
+  installUpdate: () => ipcRenderer.invoke("updater-install"),
+  onUpdateAvailable: (callback) => {
+    const listener = (_event: any, info: { version: string }) => callback(info);
+    ipcRenderer.on("update-available", listener);
+    return () => { ipcRenderer.removeListener("update-available", listener); };
+  },
+  onUpdateDownloaded: (callback) => {
+    const listener = (_event: any, info: { version: string }) => callback(info);
+    ipcRenderer.on("update-downloaded", listener);
+    return () => { ipcRenderer.removeListener("update-downloaded", listener); };
+  },
+  onDownloadProgress: (callback) => {
+    const listener = (_event: any, info: { percent: number }) => callback(info);
+    ipcRenderer.on("update-download-progress", listener);
+    return () => { ipcRenderer.removeListener("update-download-progress", listener); };
+  },
+  onUpdateError: (callback) => {
+    const listener = (_event: any, info: { message: string }) => callback(info);
+    ipcRenderer.on("update-error", listener);
+    return () => { ipcRenderer.removeListener("update-error", listener); };
+  },
+  onUpdateNotAvailable: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on("update-not-available", listener);
+    return () => { ipcRenderer.removeListener("update-not-available", listener); };
+  },
+};
+
+contextBridge.exposeInMainWorld("autoUpdater", autoUpdaterApi);
+
 // Keep other exposed APIs if any (e.g., from previous preload setup)
-contextBridge.exposeInMainWorld("electronAPI", {
-  // Example: send: (channel, data) => ipcRenderer.send(channel, data),
-  // receive: (channel, func) => ipcRenderer.on(channel, (event, ...args) => func(...args))
-});
+contextBridge.exposeInMainWorld("electronAPI", {});
 
 console.log("Preload script: electronStore API exposed.");
 console.log("Preload script: switchBotBridge API exposed.");

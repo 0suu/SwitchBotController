@@ -3,6 +3,7 @@ import path from "path";
 import Store from "electron-store";
 import axios from "axios";
 import crypto from "crypto";
+import { autoUpdater } from "electron-updater";
 
 // Define a schema for your store if you want type safety and defaults
 interface AppSettings {
@@ -66,7 +67,7 @@ const store = new Store<AppSettings>({
 });
 
 
-function createWindow() {
+function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 1000, // Increased width a bit
     height: 700, // Increased height a bit
@@ -87,12 +88,28 @@ function createWindow() {
     console.log("[Main] Loading renderer from:", rendererPath);
     mainWindow.loadFile(rendererPath);
   }
+
+  return mainWindow;
 }
 
 app.whenReady().then(() => {
-  createWindow();
+  const win = createWindow();
+  setupAutoUpdater(win);
+
+  // Check for updates after a short delay (skip in dev — app is not packaged)
+  if (process.env.NODE_ENV !== "development") {
+    setTimeout(() => {
+      autoUpdater.checkForUpdates().catch((err) => {
+        console.error("[AutoUpdater] Initial check failed:", err.message);
+      });
+    }, 3000);
+  }
+
   app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      const newWin = createWindow();
+      setupAutoUpdater(newWin);
+    }
   });
 });
 
@@ -257,6 +274,63 @@ ipcMain.handle("switchbot-api-execute-scene", async (event, sceneId) => {
       status: error.response?.status
     };
   }
+});
+
+// ── Auto-updater ────────────────────────────────────────────────────────
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+function setupAutoUpdater(win: BrowserWindow) {
+  // Remove all previous listeners to avoid duplicates on window re-creation (macOS)
+  autoUpdater.removeAllListeners();
+
+  const send = (channel: string, ...args: any[]) => {
+    if (!win.isDestroyed()) {
+      win.webContents.send(channel, ...args);
+    }
+  };
+
+  autoUpdater.on("update-available", (info) => {
+    console.log("[AutoUpdater] Update available:", info.version);
+    send("update-available", { version: info.version });
+  });
+
+  autoUpdater.on("update-not-available", () => {
+    console.log("[AutoUpdater] No update available.");
+    send("update-not-available");
+  });
+
+  autoUpdater.on("download-progress", (progress) => {
+    console.log(`[AutoUpdater] Download progress: ${Math.round(progress.percent)}%`);
+    send("update-download-progress", { percent: progress.percent });
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    console.log("[AutoUpdater] Update downloaded:", info.version);
+    send("update-downloaded", { version: info.version });
+  });
+
+  autoUpdater.on("error", (err) => {
+    console.error("[AutoUpdater] Error:", err.message);
+    send("update-error", { message: err.message });
+  });
+}
+
+ipcMain.handle("updater-check", async () => {
+  if (!app.isPackaged) {
+    return { success: false, error: "Update check is not available in development mode." };
+  }
+  try {
+    const result = await autoUpdater.checkForUpdates();
+    return { success: true, version: result?.updateInfo?.version };
+  } catch (error: any) {
+    console.error("[AutoUpdater] Check failed:", error.message);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle("updater-install", () => {
+  autoUpdater.quitAndInstall(false, true);
 });
 
 console.log("[Main] electron-store initialized. IPC handlers ready.");

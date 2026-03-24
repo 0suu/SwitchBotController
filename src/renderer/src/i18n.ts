@@ -150,6 +150,16 @@ const en: Dictionary = {
   "Sends directly to SwitchBot API. Keep parameters consistent with your device specification.":
     "Sends directly to SwitchBot API. Keep parameters consistent with your device specification.",
 
+  // Auto-update
+  "Update available": "A new version (v{version}) is available. Downloading...",
+  "Update ready": "Update v{version} is ready. Restart to apply.",
+  "Restart now": "Restart now",
+  "Later": "Later",
+  "Update error": "Update check failed.",
+  "Check for updates": "Check for updates",
+  "Checking for updates...": "Checking for updates...",
+  "No updates available": "You're on the latest version.",
+
   // Scenes
   "Loading scenes...": "Loading scenes...",
   "No scenes found. Create a manual scene in the SwitchBot app.":
@@ -304,6 +314,16 @@ const ja: Dictionary = {
   "Send custom command": "カスタムコマンドを送信",
   "Sends directly to SwitchBot API. Keep parameters consistent with your device specification.":
     "SwitchBot API に直接送信します。デバイス仕様に合わせてパラメータを設定してください。",
+
+  // Auto-update
+  "Update available": "新しいバージョン (v{version}) が見つかりました。ダウンロード中...",
+  "Update ready": "アップデート v{version} の準備ができました。再起動して適用します。",
+  "Restart now": "今すぐ再起動",
+  "Later": "あとで",
+  "Update error": "アップデートの確認に失敗しました。",
+  "Check for updates": "アップデートを確認",
+  "Checking for updates...": "アップデートを確認中...",
+  "No updates available": "最新バージョンです。",
 
   // Scenes
   "Loading scenes...": "シーンを読み込み中...",

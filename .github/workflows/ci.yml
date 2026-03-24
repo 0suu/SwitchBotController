@@ -38,14 +38,3 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Package application (Linux AppImage)
-        if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
-        run: npm run package -- --linux AppImage --dir
-
-    # Optional: Upload build artifacts (e.g., the AppImage)
-    # - name: Upload Linux Build Artifact
-    #   uses: actions/upload-artifact@v3
-    #   with:
-    #     name: switchbot-client-linux-appimage
-    #     path: release/*.AppImage # Adjust path as needed
-    #     if-no-files-found: error # Optional: fail if no file is found

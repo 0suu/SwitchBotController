@@ -62,6 +62,7 @@
     "axios": "^1.9.0",
     "crypto-js": "^4.2.0",
     "electron-store": "^4.0.0",
+    "electron-updater": "^6.8.3",
     "framer-motion": "^12.23.24",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -70,6 +71,11 @@
   "build": {
     "appId": "com.switchbot-client.app",
     "productName": "SwitchBot Client",
+    "publish": {
+      "provider": "github",
+      "owner": "0suu",
+      "repo": "SwitchBotController"
+    },
     "files": [
       "dist_electron/**/*",
       "dist_renderer/**/*",
@@ -101,16 +107,11 @@
     },
     "mac": {
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
       "icon": "assets/icon.icns",
       "category": "public.utility"
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "icon": "assets/icon.png"
     }
   }
 }
