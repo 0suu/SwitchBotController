@@ -1,6 +1,6 @@
 {
   "name": "switchbot-controller",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "",
   "type": "commonjs",
   "main": "dist_electron/src/main/main.js",

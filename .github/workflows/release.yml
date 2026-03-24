@@ -39,8 +39,15 @@ jobs:
       - name: Build application
         run: npm run build
 
-      - name: Package & publish to GitHub Releases
-        run: npx electron-builder --${{ matrix.platform }} --publish always
+      - name: Package
+        run: npx electron-builder --${{ matrix.platform }} --publish never
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: v${{ github.ref_name }}
+          files: release/*
+          generate_release_notes: true
