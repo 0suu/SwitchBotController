@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react"; // Added useRef
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { ThemeProvider, createTheme, responsiveFontSizes } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -9,6 +9,9 @@ import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
+import LinearProgress from "@mui/material/LinearProgress";
 
 import { DeviceListScreen } from "./components/DeviceListScreen";
 import { DeviceDetailScreen } from "./components/DeviceDetailScreen";
@@ -138,6 +141,45 @@ function App() {
   }, [dispatch, isTokenValid, pollingIntervalSetting, physicalDeviceCount]); // Re-run if these change
 
 
+  // ── Auto-updater state ─────────────────────────────────────────────
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
+  const [updateReady, setUpdateReady] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  const [updateDismissed, setUpdateDismissed] = useState(false);
+
+  useEffect(() => {
+    if (!window.autoUpdater) return;
+
+    const unsubAvailable = window.autoUpdater.onUpdateAvailable((info) => {
+      setUpdateVersion(info.version);
+      setDownloadProgress(0);
+      setUpdateDismissed(false);
+    });
+    const unsubProgress = window.autoUpdater.onDownloadProgress((info) => {
+      setDownloadProgress(info.percent);
+    });
+    const unsubDownloaded = window.autoUpdater.onUpdateDownloaded((info) => {
+      setUpdateVersion(info.version);
+      setUpdateReady(true);
+      setDownloadProgress(null);
+      setUpdateDismissed(false);
+    });
+    const unsubError = window.autoUpdater.onUpdateError(() => {
+      setDownloadProgress(null);
+    });
+
+    return () => {
+      unsubAvailable();
+      unsubProgress();
+      unsubDownloaded();
+      unsubError();
+    };
+  }, []);
+
+  const handleInstallUpdate = useCallback(() => {
+    window.autoUpdater?.installUpdate();
+  }, []);
+
   const navigateTo = (view: View) => { setCurrentView(view); };
   const handleDeviceSelect = (deviceId: string) => { setSelectedDeviceId(deviceId); navigateTo("detail"); };
 
@@ -196,6 +238,41 @@ function App() {
           {renderView()}
         </Container>
       </Box>
+
+      {/* Download progress bar */}
+      {downloadProgress !== null && (
+        <Snackbar open anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+          <Alert severity="info" sx={{ width: "100%" }}>
+            <Typography variant="body2" sx={{ mb: 0.5 }}>
+              {t("Update available").replace("{version}", updateVersion || "")}
+            </Typography>
+            <LinearProgress variant="determinate" value={downloadProgress} />
+          </Alert>
+        </Snackbar>
+      )}
+
+      {/* Update ready notification */}
+      <Snackbar
+        open={updateReady && !updateDismissed}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity="success"
+          sx={{ width: "100%" }}
+          action={
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button color="inherit" size="small" onClick={() => setUpdateDismissed(true)}>
+                {t("Later")}
+              </Button>
+              <Button color="inherit" size="small" variant="outlined" onClick={handleInstallUpdate}>
+                {t("Restart now")}
+              </Button>
+            </Box>
+          }
+        >
+          {t("Update ready").replace("{version}", updateVersion || "")}
+        </Alert>
+      </Snackbar>
     </ThemeProvider>
   );
 }

@@ -44,6 +44,26 @@ export const SettingsScreen: React.FC = () => {
   const [secretInput, setSecretInput] = useState(storedSecret || "");
   const [isLoading, setIsLoading] = useState(false);
   const [pollingInput, setPollingInput] = useState(pollingInterval);
+  const [updateCheckStatus, setUpdateCheckStatus] = useState<"idle" | "checking" | "none" | "error">("idle");
+
+  // Listen for update-not-available / update-available to update the check button status
+  useEffect(() => {
+    if (!window.autoUpdater) return;
+    const unsubNotAvailable = window.autoUpdater.onUpdateNotAvailable(() => {
+      setUpdateCheckStatus("none");
+    });
+    const unsubAvailable = window.autoUpdater.onUpdateAvailable(() => {
+      setUpdateCheckStatus("idle");
+    });
+    const unsubError = window.autoUpdater.onUpdateError(() => {
+      setUpdateCheckStatus("error");
+    });
+    return () => {
+      unsubNotAvailable();
+      unsubAvailable();
+      unsubError();
+    };
+  }, []);
 
   useEffect(() => {
     // Load credentials from store when component mounts
@@ -232,9 +252,34 @@ export const SettingsScreen: React.FC = () => {
           <Typography variant="h6" gutterBottom>
             {t("App Info")}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" gutterBottom>
             {t("App Version")}: {t("Footer Version")}
           </Typography>
+          {window.autoUpdater && (
+            <Box sx={{ mt: 1.5, display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={updateCheckStatus === "checking"}
+                onClick={() => {
+                  setUpdateCheckStatus("checking");
+                  window.autoUpdater.checkForUpdates();
+                }}
+              >
+                {updateCheckStatus === "checking" ? t("Checking for updates...") : t("Check for updates")}
+              </Button>
+              {updateCheckStatus === "none" && (
+                <Typography variant="body2" color="success.main">
+                  {t("No updates available")}
+                </Typography>
+              )}
+              {updateCheckStatus === "error" && (
+                <Typography variant="body2" color="error.main">
+                  {t("Update error")}
+                </Typography>
+              )}
+            </Box>
+          )}
         </Paper>
       </Box>
     </Container>
