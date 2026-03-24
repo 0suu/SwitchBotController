@@ -97,7 +97,7 @@ app.whenReady().then(() => {
   setupAutoUpdater(win);
 
   // Check for updates after a short delay (skip in dev — app is not packaged)
-  if (process.env.NODE_ENV !== "development") {
+  if (app.isPackaged) {
     setTimeout(() => {
       autoUpdater.checkForUpdates().catch((err) => {
         console.error("[AutoUpdater] Initial check failed:", err.message);
