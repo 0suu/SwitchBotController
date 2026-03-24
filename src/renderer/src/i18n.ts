@@ -8,8 +8,8 @@ type Dictionary = Record<string, string>;
 
 const en: Dictionary = {
   // Generic
-  "App Title": "SwitchBot Client",
-  "Footer Version": `SwitchBot PC Client v${APP_VERSION}`,
+  "App Title": "SwitchBot Controller",
+  "Footer Version": `SwitchBot Controller v${APP_VERSION}`,
   Devices: "Devices",
   Settings: "Settings",
   Theme: "Theme",
@@ -172,8 +172,8 @@ const en: Dictionary = {
 
 const ja: Dictionary = {
   // Generic
-  "App Title": "SwitchBot クライアント",
-  "Footer Version": `SwitchBot PC クライアント v${APP_VERSION}`,
+  "App Title": "SwitchBot コントローラー",
+  "Footer Version": `SwitchBot コントローラー v${APP_VERSION}`,
   Devices: "デバイス",
   Settings: "設定",
   Theme: "テーマ",

@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
+import fs from "fs";
 import Store from "electron-store";
 import axios from "axios";
 import crypto from "crypto";
@@ -50,16 +51,25 @@ const schema = {
   },
 };
 
-// Initialize electron-store
-// To enable encryption, you would set `encryptionKey`
-// e.g., encryptionKey: "your-strong-encryption-key" (this should be handled securely, not hardcoded like this)
-// Or rely on keytar by not setting it if keytar is installed and works.
-// For this setup, we will define it with a placeholder name.
-// Actual secure key management for encryptionKey is complex and might involve user input or OS keychain.
-// For now, we demonstrate the structure.
+// Migrate config from old app ("SwitchBot Client") to new app ("SwitchBot Controller").
+// Electron uses productName for the userData directory, so the old config lives in a
+// sibling directory, not in the current one.
+const newUserDataPath = app.getPath("userData");
+const oldUserDataPath = path.join(path.dirname(newUserDataPath), "SwitchBot Client");
+const oldConfigPath = path.join(oldUserDataPath, "switchbot-client-config.json");
+const newConfigPath = path.join(newUserDataPath, "switchbot-controller-config.json");
+if (fs.existsSync(oldConfigPath) && !fs.existsSync(newConfigPath)) {
+  try {
+    fs.copyFileSync(oldConfigPath, newConfigPath);
+    console.log("[Main] Migrated config from", oldConfigPath, "to", newConfigPath);
+  } catch (error) {
+    console.error("[Main] Failed to migrate config:", error);
+  }
+}
+
 const store = new Store<AppSettings>({
   schema,
-  name: "switchbot-client-config", // Name of the config file (without extension)
+  name: "switchbot-controller-config", // Name of the config file (without extension)
   // encryptionKey: "your-secret-key", // Example: enables AES-256 encryption.
   // IMPORTANT: A fixed key here is not secure for distribution.
   // For real app, explore dynamic keys or keytar.
