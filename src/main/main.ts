@@ -51,15 +51,16 @@ const schema = {
   },
 };
 
-// Migrate config from old app ("SwitchBot Client") to new app ("SwitchBot Controller").
-// Electron uses productName for the userData directory, so the old config lives in a
-// sibling directory, not in the current one.
+// Migrate config from v1.1.0 ("app/switchbot-client-config.json") to v1.2.0.
+// In v1.1.0 package.json name was "app", so userData was "%APPDATA%/app/".
+// Now name is "switchbot-controller", so userData is "%APPDATA%/switchbot-controller/".
 const newUserDataPath = app.getPath("userData");
-const oldUserDataPath = path.join(path.dirname(newUserDataPath), "SwitchBot Client");
+const oldUserDataPath = path.join(path.dirname(newUserDataPath), "app");
 const oldConfigPath = path.join(oldUserDataPath, "switchbot-client-config.json");
 const newConfigPath = path.join(newUserDataPath, "switchbot-controller-config.json");
 if (fs.existsSync(oldConfigPath) && !fs.existsSync(newConfigPath)) {
   try {
+    fs.mkdirSync(newUserDataPath, { recursive: true });
     fs.copyFileSync(oldConfigPath, newConfigPath);
     console.log("[Main] Migrated config from", oldConfigPath, "to", newConfigPath);
   } catch (error) {
