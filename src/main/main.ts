@@ -19,6 +19,7 @@ interface AppSettings {
   nightLightSceneAssignments?: Record<string, string>;
   lastView?: "list" | "settings" | "scenes";
   confirmOnOffPressActions?: Record<string, boolean>;
+  windowBounds?: { width: number; height: number; x: number; y: number };
 }
 
 const schema = {
@@ -48,6 +49,15 @@ const schema = {
     type: "object",
     default: {},
     additionalProperties: { type: "boolean" },
+  },
+  windowBounds: {
+    type: "object",
+    properties: {
+      width: { type: "number" },
+      height: { type: "number" },
+      x: { type: "number" },
+      y: { type: "number" },
+    },
   },
 };
 
@@ -79,9 +89,13 @@ const store = new Store<AppSettings>({
 
 
 function createWindow(): BrowserWindow {
+  const savedBounds = store.get("windowBounds") as AppSettings["windowBounds"];
+
   const mainWindow = new BrowserWindow({
-    width: 1000, // Increased width a bit
-    height: 700, // Increased height a bit
+    width: savedBounds?.width ?? 1000,
+    height: savedBounds?.height ?? 700,
+    x: savedBounds?.x,
+    y: savedBounds?.y,
     webPreferences: {
       preload: path.join(__dirname, "../preload/preload.js"),
       contextIsolation: true,
@@ -89,6 +103,19 @@ function createWindow(): BrowserWindow {
     },
     autoHideMenuBar: true, // Hide the default menu bar
   });
+
+  // Save window bounds on move and resize (debounced)
+  let saveTimeout: ReturnType<typeof setTimeout>;
+  const saveBounds = () => {
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      if (!mainWindow.isDestroyed() && !mainWindow.isMinimized() && !mainWindow.isMaximized()) {
+        store.set("windowBounds", mainWindow.getBounds());
+      }
+    }, 500);
+  };
+  mainWindow.on("resize", saveBounds);
+  mainWindow.on("move", saveBounds);
 
   if (process.env.NODE_ENV === "development") {
     mainWindow.loadURL("http://localhost:5173"); // Vite dev server URL
