@@ -18,6 +18,7 @@ import { DeviceDetailScreen } from "./components/DeviceDetailScreen";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { ScenesScreen } from "./components/ScenesScreen";
 import { HideOnScroll } from "./components/HideOnScroll";
+import { EnvironmentStatusBar } from "./components/EnvironmentStatusBar";
 import { AppDispatch } from "./store/store";
 import { createAppTheme } from "./theme";
 import {
@@ -29,7 +30,7 @@ import {
   testApiCredentials,
   selectTheme,
 } from "./store/slices/settingsSlice";
-import { loadDeviceOrder, pollAllDeviceStatuses, selectAllDevices } from "./store/slices/deviceSlice"; // Added pollAllDeviceStatuses
+import { fetchDevices, loadDeviceOrder, pollAllDeviceStatuses, selectAllDevices } from "./store/slices/deviceSlice";
 import { loadNightLightSceneAssignments, loadSceneOrder } from "./store/slices/sceneSlice";
 import { useTranslation } from "./useTranslation";
 
@@ -105,6 +106,14 @@ function App() {
     hasAttemptedAutoValidationRef.current = true;
     dispatch(testApiCredentials());
   }, [dispatch, storedToken, storedSecret]);
+
+  // Fetch device list at the App level so the environment status bar (and
+  // polling) work regardless of which view is active on startup.
+  useEffect(() => {
+    if (isTokenValid && storedToken) {
+      dispatch(fetchDevices());
+    }
+  }, [dispatch, isTokenValid, storedToken]);
 
   // Effect for polling logic
   useEffect(() => {
@@ -204,9 +213,12 @@ function App() {
         <HideOnScroll>
           <AppBar position="fixed" color="default" elevation={0}>
             <Toolbar>
-              <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: "bold", letterSpacing: -0.5 }}>
+              <Typography variant="h6" component="div" sx={{ fontWeight: "bold", letterSpacing: -0.5 }}>
                 {t("App Title")}
               </Typography>
+              <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
+                <EnvironmentStatusBar />
+              </Box>
               <Box sx={{ display: 'flex', gap: 1 }}>
                 <Button
                   color={currentView === "list" ? "primary" : "inherit"}

@@ -41,6 +41,8 @@ const en: Dictionary = {
   "Cannot refresh. API credentials are not valid or not set.":
     "Cannot refresh. API credentials are not valid or not set.",
   "No devices found, or check API permissions.": "No devices found, or check API permissions.",
+  "Select sensor": "Select sensor",
+  "Clear selection": "Clear selection",
   "Unnamed Device": "Unnamed Device",
   Unknown: "Unknown",
   Details: "Details",
@@ -206,6 +208,8 @@ const ja: Dictionary = {
     "再読み込みできません。API 認証情報が未設定または無効です。",
   "No devices found, or check API permissions.":
     "デバイスが見つかりません。API 権限を確認してください。",
+  "Select sensor": "センサーを選択",
+  "Clear selection": "選択を解除",
   "Unnamed Device": "名称未設定デバイス",
   Unknown: "不明",
   Details: "詳細",
