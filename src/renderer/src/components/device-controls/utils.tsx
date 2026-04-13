@@ -14,6 +14,8 @@ export const hexToRgbParameter = (hexValue: string): string | null => {
 };
 
 export const getConfirmCommandStorageKey = (deviceId: string) => `confirmOnOffPressActions.${deviceId}`;
+export const getDeviceControlDraftStorageKey = (deviceId: string, namespace: string) =>
+  `deviceControlDrafts.${deviceId}.${namespace}`;
 
 interface SectionLabelProps {
   label: React.ReactNode;

@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import { Box, Button, MenuItem, Slider, Stack, TextField, Typography } from "@mui/material";
 import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { SectionLabel, clamp } from "./utils";
 import { useDeviceType } from "../../hooks/useDeviceType";
+import { usePersistedDeviceControlState } from "../../hooks/usePersistedDeviceControlState";
 import { CustomCommandControls } from "./CustomCommandControls";
 import {
   COMMAND_TURN_OFF,
@@ -23,11 +24,18 @@ export const InfraredRemoteControls: React.FC<DeviceControlProps> = (props) => {
     isRemoteLight,
   } = useDeviceType(device);
 
-  const [acTemperature, setAcTemperature] = useState(26);
-  const [acMode, setAcMode] = useState("2"); // 2: cool (per docs)
-  const [acFanSpeed, setAcFanSpeed] = useState("3"); // 3: medium
-  const [acPower, setAcPower] = useState<"on" | "off">("on");
-  const [tvChannel, setTvChannel] = useState("");
+  const [draft, setDraft] = usePersistedDeviceControlState(
+    device.deviceId,
+    "infraredRemote",
+    {
+      acTemperature: 26,
+      acMode: "2", // 2: cool (per docs)
+      acFanSpeed: "3", // 3: medium
+      acPower: "on" as "on" | "off",
+      tvChannel: "",
+    }
+  );
+  const { acTemperature, acMode, acFanSpeed, acPower, tvChannel } = draft;
 
   const gridColumns = dense ? 2 : 3;
   const maxControlWidth = dense ? 360 : 520;
@@ -87,7 +95,9 @@ export const InfraredRemoteControls: React.FC<DeviceControlProps> = (props) => {
               min={16}
               max={32}
               step={1}
-              onChange={(_, v) => setAcTemperature(v as number)}
+              onChange={(_, v) =>
+                setDraft((current) => ({ ...current, acTemperature: v as number }))
+              }
               valueLabelDisplay="auto"
               aria-label="AC temperature"
               disabled={controlsDisabled}
@@ -99,7 +109,9 @@ export const InfraredRemoteControls: React.FC<DeviceControlProps> = (props) => {
               size="small"
               label={t("Mode")}
               value={acMode}
-              onChange={(e) => setAcMode(e.target.value)}
+              onChange={(e) =>
+                setDraft((current) => ({ ...current, acMode: e.target.value }))
+              }
               fullWidth
             >
               <MenuItem value="1">{t("Auto")}</MenuItem>
@@ -113,7 +125,9 @@ export const InfraredRemoteControls: React.FC<DeviceControlProps> = (props) => {
               size="small"
               label={t("Fan speed")}
               value={acFanSpeed}
-              onChange={(e) => setAcFanSpeed(e.target.value)}
+              onChange={(e) =>
+                setDraft((current) => ({ ...current, acFanSpeed: e.target.value }))
+              }
               fullWidth
             >
               <MenuItem value="1">{t("Auto")}</MenuItem>
@@ -126,7 +140,12 @@ export const InfraredRemoteControls: React.FC<DeviceControlProps> = (props) => {
               size="small"
               label={t("Power")}
               value={acPower}
-              onChange={(e) => setAcPower(e.target.value as "on" | "off")}
+              onChange={(e) =>
+                setDraft((current) => ({
+                  ...current,
+                  acPower: e.target.value as "on" | "off",
+                }))
+              }
               fullWidth
             >
               <MenuItem value="on">{t("On")}</MenuItem>
@@ -199,7 +218,9 @@ export const InfraredRemoteControls: React.FC<DeviceControlProps> = (props) => {
               label="Channel number"
               size="small"
               value={tvChannel}
-              onChange={(e) => setTvChannel(e.target.value)}
+              onChange={(e) =>
+                setDraft((current) => ({ ...current, tvChannel: e.target.value }))
+              }
               placeholder="e.g. 15"
             />
             <Button

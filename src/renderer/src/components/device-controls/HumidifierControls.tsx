@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import { Box, Button, Slider, Stack, Typography } from "@mui/material";
 import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { clamp, SectionLabel } from "./utils";
 import { useDeviceType } from "../../hooks/useDeviceType";
+import { usePersistedDeviceControlState } from "../../hooks/usePersistedDeviceControlState";
 import {
   COMMAND_SET_MODE,
   COMMAND_TURN_OFF,
@@ -20,8 +21,15 @@ export const HumidifierControls: React.FC<DeviceControlProps> = ({
   const { t } = useTranslation();
   const { isEvaporativeHumidifier } = useDeviceType(device);
 
-  const [targetHumidify, setTargetHumidify] = useState(60);
-  const [humidifierLevel, setHumidifierLevel] = useState(50);
+  const [draft, setDraft] = usePersistedDeviceControlState(
+    device.deviceId,
+    "humidifier",
+    {
+      targetHumidify: 60,
+      humidifierLevel: 50,
+    }
+  );
+  const { targetHumidify, humidifierLevel } = draft;
 
   type EvaporativeModeKey =
     | "level1"
@@ -182,7 +190,12 @@ export const HumidifierControls: React.FC<DeviceControlProps> = ({
               min={0}
               max={100}
               step={1}
-              onChange={(_, value) => setHumidifierLevel(value as number)}
+              onChange={(_, value) =>
+                setDraft((current) => ({
+                  ...current,
+                  humidifierLevel: value as number,
+                }))
+              }
               onChangeCommitted={(_, value) =>
                 sendCommand(COMMAND_SET_MODE, clamp(value as number, 0, 100))
               }
@@ -229,7 +242,12 @@ export const HumidifierControls: React.FC<DeviceControlProps> = ({
             min={0}
             max={100}
             step={1}
-            onChange={(_, value) => setTargetHumidify(value as number)}
+            onChange={(_, value) =>
+              setDraft((current) => ({
+                ...current,
+                targetHumidify: value as number,
+              }))
+            }
             valueLabelDisplay="auto"
             aria-label="Target humidity"
             disabled={controlsDisabled}

@@ -19,6 +19,7 @@ interface AppSettings {
   nightLightSceneAssignments?: Record<string, string>;
   lastView?: "list" | "settings" | "scenes";
   confirmOnOffPressActions?: Record<string, boolean>;
+  deviceControlDrafts?: Record<string, Record<string, unknown>>;
   windowBounds?: { width: number; height: number; x: number; y: number };
 }
 
@@ -49,6 +50,14 @@ const schema = {
     type: "object",
     default: {},
     additionalProperties: { type: "boolean" },
+  },
+  deviceControlDrafts: {
+    type: "object",
+    default: {},
+    additionalProperties: {
+      type: "object",
+      additionalProperties: true,
+    },
   },
   windowBounds: {
     type: "object",

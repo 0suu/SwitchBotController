@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import {
   Box,
   Button,
@@ -16,6 +16,7 @@ import {
   COMMAND_TYPE_COMMAND,
   DEFAULT_PARAMETER,
 } from "../../constants/commandConstants";
+import { usePersistedDeviceControlState } from "../../hooks/usePersistedDeviceControlState";
 
 export const DynamicControls: React.FC<DeviceControlProps> = ({
   device,
@@ -24,10 +25,7 @@ export const DynamicControls: React.FC<DeviceControlProps> = ({
   dense,
 }) => {
   const { definition, isHiddenByDefinition } = useDeviceType(device);
-  const [dynamicParams, setDynamicParams] = useState<Record<string, any>>({});
-  const maxControlWidth = dense ? 360 : 520;
-
-  useEffect(() => {
+  const defaultDynamicParams = useMemo(() => {
     const defaults: Record<string, any> = {};
     (definition?.commands || []).forEach((cmd) => {
       const param = cmd.parameter;
@@ -39,8 +37,14 @@ export const DynamicControls: React.FC<DeviceControlProps> = ({
       if (param.type === "text" && param.defaultValue !== undefined)
         defaults[cmd.command] = param.defaultValue;
     });
-    setDynamicParams(defaults);
-  }, [definition, device.deviceId]);
+    return defaults;
+  }, [definition]);
+  const [dynamicParams, setDynamicParams] = usePersistedDeviceControlState(
+    device.deviceId,
+    "dynamicControls",
+    defaultDynamicParams
+  );
+  const maxControlWidth = dense ? 360 : 520;
 
   const resolveParameterValue = (cmd: DeviceCommandDefinition) => {
     const spec = cmd.parameter;
