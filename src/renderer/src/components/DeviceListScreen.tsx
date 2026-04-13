@@ -16,7 +16,6 @@ import {
   selectAllDevices,
   selectDevicesLoading,
   selectDevicesError,
-  clearDevices,
   setError,
   selectDeviceStatusMap,
   setDeviceOrder,
@@ -120,14 +119,12 @@ export const DeviceListScreen: React.FC<{ onDeviceSelect: (deviceId: string) => 
     []
   );
 
+  // Device fetching is handled at the App level. This effect only sets
+  // contextual error messages for the list view.
   useEffect(() => {
-    if (isTokenValid && apiTokenSet) {
-      dispatch(fetchDevices());
-    } else if (apiTokenSet && !isTokenValid) {
-      dispatch(clearDevices());
+    if (apiTokenSet && !isTokenValid) {
       dispatch(setError(t("API credentials are set but not validated. Please test them in Settings.")));
-    } else {
-      dispatch(clearDevices());
+    } else if (!apiTokenSet) {
       dispatch(setError(t("API credentials not configured. Please go to Settings.")));
     }
   }, [dispatch, isTokenValid, apiTokenSet, t]);

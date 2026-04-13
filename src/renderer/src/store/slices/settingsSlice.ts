@@ -13,6 +13,7 @@ export interface SettingsState {
   theme: "light" | "dark" | "system";
   logRetentionDays: number;
   language: "en" | "ja";
+  pinnedEnvironmentDeviceId: string | null;
 }
 
 const mockDefaults = {
@@ -30,6 +31,7 @@ const initialState: SettingsState = {
   theme: "system",
   logRetentionDays: 7,
   language: "en",
+  pinnedEnvironmentDeviceId: null,
 };
 
 const persistSetting = (key: string, value: unknown, label: string) => {
@@ -90,6 +92,10 @@ export const loadApiCredentials = createAsyncThunk(
       }
       if (storedLanguage === "en" || storedLanguage === "ja") {
         dispatch(setLanguage(storedLanguage));
+      }
+      const storedPinnedDevice = await window.electronStore.get("pinnedEnvironmentDeviceId");
+      if (typeof storedPinnedDevice === "string") {
+        dispatch(setPinnedEnvironmentDeviceId(storedPinnedDevice));
       }
 
       if (token && secret) {
@@ -276,7 +282,14 @@ export const settingsSlice = createSlice({
       state.language = action.payload;
       persistSetting("language", action.payload, "language");
     },
-    // ... other reducers
+    setPinnedEnvironmentDeviceId: (state, action: PayloadAction<string | null>) => {
+      state.pinnedEnvironmentDeviceId = action.payload;
+      if (action.payload) {
+        persistSetting("pinnedEnvironmentDeviceId", action.payload, "pinned environment device");
+      } else {
+        deleteSetting("pinnedEnvironmentDeviceId", "pinned environment device");
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -307,6 +320,7 @@ export const {
   setPollingInterval,
   setTheme,
   setLanguage,
+  setPinnedEnvironmentDeviceId,
 } = settingsSlice.actions;
 
 export const selectApiToken = (state: RootState) => state.settings.apiToken;
@@ -316,5 +330,6 @@ export const selectValidationMessage = (state: RootState) => state.settings.vali
 export const selectPollingInterval = (state: RootState) => state.settings.pollingIntervalSeconds;
 export const selectTheme = (state: RootState) => state.settings.theme;
 export const selectLanguage = (state: RootState) => state.settings.language;
+export const selectPinnedEnvironmentDeviceId = (state: RootState) => state.settings.pinnedEnvironmentDeviceId;
 
 export default settingsSlice.reducer;
