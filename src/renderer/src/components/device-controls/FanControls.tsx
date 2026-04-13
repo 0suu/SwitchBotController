@@ -1,20 +1,25 @@
-import React, { useState } from "react";
+import React from "react";
 import { Box, Button, Slider, Typography } from "@mui/material";
 import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { clamp, SectionLabel } from "./utils";
+import { usePersistedDeviceControlState } from "../../hooks/usePersistedDeviceControlState";
 import {
   COMMAND_TURN_OFF,
   COMMAND_TURN_ON,
 } from "../../constants/commandConstants";
 
 export const FanControls: React.FC<DeviceControlProps> = ({
+  device,
   sendCommand,
   controlsDisabled,
   dense,
 }) => {
   const { t } = useTranslation();
-  const [fanSpeed, setFanSpeed] = useState(50);
+  const [draft, setDraft] = usePersistedDeviceControlState(device.deviceId, "fan", {
+    fanSpeed: 50,
+  });
+  const { fanSpeed } = draft;
 
   const gridColumns = dense ? 2 : 3;
   const maxControlWidth = dense ? 360 : 520;
@@ -93,7 +98,9 @@ export const FanControls: React.FC<DeviceControlProps> = ({
           min={1}
           max={100}
           step={1}
-          onChange={(_, value) => setFanSpeed(value as number)}
+          onChange={(_, value) =>
+            setDraft((current) => ({ ...current, fanSpeed: value as number }))
+          }
           onChangeCommitted={(_, value) =>
             sendCommand("setWindSpeed", clamp(value as number, 1, 100))
           }

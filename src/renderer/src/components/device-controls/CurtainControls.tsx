@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { Box, Button, Slider, Typography } from "@mui/material";
 import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { clamp, SectionLabel } from "./utils";
+import { usePersistedDeviceControlState } from "../../hooks/usePersistedDeviceControlState";
 import {
   COMMAND_SET_POSITION,
   COMMAND_TURN_OFF,
@@ -10,12 +11,16 @@ import {
 } from "../../constants/commandConstants";
 
 export const CurtainControls: React.FC<DeviceControlProps> = ({
+  device,
   sendCommand,
   controlsDisabled,
   dense,
 }) => {
   const { t } = useTranslation();
-  const [position, setPosition] = useState(50);
+  const [draft, setDraft] = usePersistedDeviceControlState(device.deviceId, "curtain", {
+    position: 50,
+  });
+  const { position } = draft;
   const gridColumns = dense ? 2 : 3;
   const maxControlWidth = dense ? 360 : 520;
   const buttonGridSx = {
@@ -68,7 +73,9 @@ export const CurtainControls: React.FC<DeviceControlProps> = ({
           min={0}
           max={100}
           step={1}
-          onChange={(_, value) => setPosition(value as number)}
+          onChange={(_, value) =>
+            setDraft((current) => ({ ...current, position: value as number }))
+          }
           onChangeCommitted={(_, value) =>
             sendCommand(
               COMMAND_SET_POSITION,

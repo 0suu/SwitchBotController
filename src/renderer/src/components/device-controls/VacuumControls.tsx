@@ -1,16 +1,21 @@
-import React, { useState } from "react";
+import React from "react";
 import { Box, Button, Slider, Typography } from "@mui/material";
 import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { clamp, SectionLabel } from "./utils";
+import { usePersistedDeviceControlState } from "../../hooks/usePersistedDeviceControlState";
 
 export const VacuumControls: React.FC<DeviceControlProps> = ({
+  device,
   sendCommand,
   controlsDisabled,
   dense,
 }) => {
   const { t } = useTranslation();
-  const [vacuumPowerLevel, setVacuumPowerLevel] = useState(1);
+  const [draft, setDraft] = usePersistedDeviceControlState(device.deviceId, "vacuum", {
+    vacuumPowerLevel: 1,
+  });
+  const { vacuumPowerLevel } = draft;
 
   const gridColumns = dense ? 2 : 3;
   const maxControlWidth = dense ? 360 : 520;
@@ -67,7 +72,12 @@ export const VacuumControls: React.FC<DeviceControlProps> = ({
           min={0}
           max={3}
           step={1}
-          onChange={(_, value) => setVacuumPowerLevel(value as number)}
+          onChange={(_, value) =>
+            setDraft((current) => ({
+              ...current,
+              vacuumPowerLevel: value as number,
+            }))
+          }
           onChangeCommitted={(_, value) =>
             sendCommand("PowLevel", clamp(value as number, 0, 3))
           }

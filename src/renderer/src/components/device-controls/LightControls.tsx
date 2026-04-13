@@ -13,6 +13,7 @@ import { useTranslation } from "../../useTranslation";
 import { DeviceControlProps } from "./DeviceControls.types";
 import { clamp, hexToRgbParameter, SectionLabel } from "./utils";
 import { useDeviceType } from "../../hooks/useDeviceType";
+import { usePersistedDeviceControlState } from "../../hooks/usePersistedDeviceControlState";
 import {
   COMMAND_SET_BRIGHTNESS,
   COMMAND_SET_COLOR,
@@ -54,9 +55,12 @@ export const LightControls: React.FC<DeviceControlProps> = ({
 
   const isTokenValid = useSelector(selectIsTokenValidated);
 
-  const [brightness, setBrightness] = useState(80);
-  const [colorTemp, setColorTemp] = useState(4000);
-  const [color, setColor] = useState("#ffffff");
+  const [draft, setDraft] = usePersistedDeviceControlState(device.deviceId, "light", {
+    brightness: 80,
+    colorTemp: 4000,
+    color: "#ffffff",
+  });
+  const { brightness, colorTemp, color } = draft;
 
   // Night light scene logic
   const scenes = useSelector(selectScenes);
@@ -239,7 +243,9 @@ export const LightControls: React.FC<DeviceControlProps> = ({
             value={brightness}
             min={1}
             max={100}
-            onChange={(_, value) => setBrightness(value as number)}
+            onChange={(_, value) =>
+              setDraft((current) => ({ ...current, brightness: value as number }))
+            }
             onChangeCommitted={(_, value) =>
               sendCommand(COMMAND_SET_BRIGHTNESS, Math.round(value as number))
             }
@@ -260,7 +266,9 @@ export const LightControls: React.FC<DeviceControlProps> = ({
             min={2700}
             max={6500}
             step={100}
-            onChange={(_, value) => setColorTemp(value as number)}
+            onChange={(_, value) =>
+              setDraft((current) => ({ ...current, colorTemp: value as number }))
+            }
             onChangeCommitted={(_, value) =>
               sendCommand(
                 COMMAND_SET_COLOR_TEMPERATURE,
@@ -284,7 +292,9 @@ export const LightControls: React.FC<DeviceControlProps> = ({
             label="Color (#RRGGBB)"
             size="small"
             value={color}
-            onChange={(e) => setColor(e.target.value)}
+            onChange={(e) =>
+              setDraft((current) => ({ ...current, color: e.target.value }))
+            }
             sx={{ minWidth: 180, maxWidth: compactInputWidth }}
           />
           <Button
