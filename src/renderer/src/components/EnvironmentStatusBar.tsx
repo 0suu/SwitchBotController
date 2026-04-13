@@ -49,7 +49,7 @@ export const EnvironmentStatusBar: React.FC = () => {
     const device = devices.find((d) => d.deviceId === deviceId);
     if (!device) return undefined;
     const statusFields = getStatusFieldsForDevice(device.deviceType);
-    const field = statusFields.find((f: any) => f.key === fieldKey);
+    const field = statusFields.find((f) => f.key === fieldKey);
     if (!field) return undefined;
     const status = statusMap[deviceId];
     const raw = status ? (status as any)[field.key] : undefined;

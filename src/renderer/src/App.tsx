@@ -30,7 +30,14 @@ import {
   testApiCredentials,
   selectTheme,
 } from "./store/slices/settingsSlice";
-import { fetchDevices, loadDeviceOrder, pollAllDeviceStatuses, selectAllDevices } from "./store/slices/deviceSlice";
+import {
+  clearDevices,
+  clearSelectedDeviceStatus,
+  fetchDevices,
+  loadDeviceOrder,
+  pollAllDeviceStatuses,
+  selectAllDevices,
+} from "./store/slices/deviceSlice";
 import { loadNightLightSceneAssignments, loadSceneOrder } from "./store/slices/sceneSlice";
 import { useTranslation } from "./useTranslation";
 
@@ -112,7 +119,10 @@ function App() {
   useEffect(() => {
     if (isTokenValid && storedToken) {
       dispatch(fetchDevices());
+      return;
     }
+    dispatch(clearDevices());
+    dispatch(clearSelectedDeviceStatus());
   }, [dispatch, isTokenValid, storedToken]);
 
   // Effect for polling logic
