@@ -16,7 +16,7 @@ describe('settingsSlice reducers', () => {
     theme: 'system',
     logRetentionDays: 7,
     language: 'en',
-    pinnedEnvironmentDeviceId: null,
+    pinnedEnvironmentDeviceIds: [],
   };
 
   it('should handle initial state', () => {
