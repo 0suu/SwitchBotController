@@ -74,7 +74,8 @@
     "publish": {
       "provider": "github",
       "owner": "0suu",
-      "repo": "SwitchBotController"
+      "repo": "SwitchBotController",
+      "vPrefixedTagName": false
     },
     "files": [
       "dist_electron/**/*",
