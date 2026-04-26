@@ -1,15 +1,77 @@
 name: Build & Release
 
 on:
-  push:
-    tags:
-      - "[0-9]+.[0-9]+.[0-9]+"   # e.g. 1.2.0
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, e.g. 1.2.0"
+        required: true
+        type: string
 
 permissions:
   contents: write   # needed to create GitHub Releases
 
 jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_sha: ${{ steps.release-ref.outputs.release_sha }}
+      version: ${{ steps.release-ref.outputs.version }}
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Validate release branch and version
+        shell: bash
+        run: |
+          if [[ "${{ github.ref_type }}" != "branch" ]]; then
+            echo "Release workflow must be run from a branch."
+            exit 1
+          fi
+          if [[ ! "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Version must be semver without a leading v, e.g. 1.2.0 or 1.2.0-beta.1"
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "$RELEASE_VERSION" >/dev/null 2>&1; then
+            echo "Tag $RELEASE_VERSION already exists."
+            exit 1
+          fi
+
+      - name: Set package version
+        shell: bash
+        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+
+      - name: Commit and tag release version
+        id: release-ref
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if ! git diff --quiet -- package.json package-lock.json; then
+            git add package.json package-lock.json
+            git commit -m "chore: release $RELEASE_VERSION"
+          fi
+
+          git tag "$RELEASE_VERSION"
+          git push origin "HEAD:${{ github.ref_name }}"
+          git push origin "$RELEASE_VERSION"
+          echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
   release:
+    needs: prepare-release
     strategy:
       matrix:
         include:
@@ -19,15 +81,19 @@ jobs:
             platform: mac
 
     runs-on: ${{ matrix.os }}
+    env:
+      RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare-release.outputs.release_sha }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: npm
 
       - name: Install dependencies
