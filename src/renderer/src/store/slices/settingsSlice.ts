@@ -13,7 +13,7 @@ export interface SettingsState {
   theme: "light" | "dark" | "system";
   logRetentionDays: number;
   language: "en" | "ja";
-  pinnedEnvironmentDeviceId: string | null;
+  pinnedEnvironmentDeviceIds: string[];
 }
 
 const mockDefaults = {
@@ -31,7 +31,7 @@ const initialState: SettingsState = {
   theme: "system",
   logRetentionDays: 7,
   language: "en",
-  pinnedEnvironmentDeviceId: null,
+  pinnedEnvironmentDeviceIds: [],
 };
 
 const persistSetting = (key: string, value: unknown, label: string) => {
@@ -93,9 +93,23 @@ export const loadApiCredentials = createAsyncThunk(
       if (storedLanguage === "en" || storedLanguage === "ja") {
         dispatch(setLanguage(storedLanguage));
       }
-      const storedPinnedDevice = await window.electronStore.get("pinnedEnvironmentDeviceId");
-      if (typeof storedPinnedDevice === "string") {
-        dispatch(setPinnedEnvironmentDeviceId(storedPinnedDevice));
+      const storedPinnedDevices = await window.electronStore.get("pinnedEnvironmentDeviceIds");
+      if (Array.isArray(storedPinnedDevices)) {
+        const ids = storedPinnedDevices.filter((v): v is string => typeof v === "string");
+        if (ids.length > 0) {
+          dispatch(setPinnedEnvironmentDeviceIds(ids));
+        }
+        const legacyPinned = await window.electronStore.get("pinnedEnvironmentDeviceId");
+        if (typeof legacyPinned === "string") {
+          deleteSetting("pinnedEnvironmentDeviceId", "legacy pinned environment device");
+        }
+      } else {
+        // Migrate legacy single-device setting.
+        const legacyPinned = await window.electronStore.get("pinnedEnvironmentDeviceId");
+        if (typeof legacyPinned === "string") {
+          dispatch(setPinnedEnvironmentDeviceIds([legacyPinned]));
+          deleteSetting("pinnedEnvironmentDeviceId", "legacy pinned environment device");
+        }
       }
 
       if (token && secret) {
@@ -282,12 +296,12 @@ export const settingsSlice = createSlice({
       state.language = action.payload;
       persistSetting("language", action.payload, "language");
     },
-    setPinnedEnvironmentDeviceId: (state, action: PayloadAction<string | null>) => {
-      state.pinnedEnvironmentDeviceId = action.payload;
-      if (action.payload) {
-        persistSetting("pinnedEnvironmentDeviceId", action.payload, "pinned environment device");
+    setPinnedEnvironmentDeviceIds: (state, action: PayloadAction<string[]>) => {
+      state.pinnedEnvironmentDeviceIds = action.payload;
+      if (action.payload.length > 0) {
+        persistSetting("pinnedEnvironmentDeviceIds", action.payload, "pinned status bar devices");
       } else {
-        deleteSetting("pinnedEnvironmentDeviceId", "pinned environment device");
+        deleteSetting("pinnedEnvironmentDeviceIds", "pinned status bar devices");
       }
     },
   },
@@ -320,7 +334,7 @@ export const {
   setPollingInterval,
   setTheme,
   setLanguage,
-  setPinnedEnvironmentDeviceId,
+  setPinnedEnvironmentDeviceIds,
 } = settingsSlice.actions;
 
 export const selectApiToken = (state: RootState) => state.settings.apiToken;
@@ -330,6 +344,6 @@ export const selectValidationMessage = (state: RootState) => state.settings.vali
 export const selectPollingInterval = (state: RootState) => state.settings.pollingIntervalSeconds;
 export const selectTheme = (state: RootState) => state.settings.theme;
 export const selectLanguage = (state: RootState) => state.settings.language;
-export const selectPinnedEnvironmentDeviceId = (state: RootState) => state.settings.pinnedEnvironmentDeviceId;
+export const selectPinnedEnvironmentDeviceIds = (state: RootState) => state.settings.pinnedEnvironmentDeviceIds;
 
 export default settingsSlice.reducer;
