@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useSyncExternalStore, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Box from "@mui/material/Box";
 import ButtonBase from "@mui/material/ButtonBase";
@@ -15,7 +15,6 @@ import BoltIcon from "@mui/icons-material/Bolt";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import useMediaQuery from "@mui/material/useMediaQuery";
 import { useTheme } from "@mui/material/styles";
 
 import { AppDispatch } from "../store/store";
@@ -27,9 +26,20 @@ import {
 import { findDeviceDefinition, getStatusFieldsForDevice } from "../deviceDefinitions";
 import { useTranslation } from "../useTranslation";
 
-/** Device definition keys eligible for pinning to the top status bar. */
+/**
+ * Device definition keys eligible for pinning to the top status bar.
+ * Plug is filtered to Plug Mini below because legacy Plug does not report power.
+ */
 const STATUS_BAR_DEVICE_KEYS = new Set(["meter", "hub2", "hub3", "plug"]);
 const isPlugMiniDeviceType = (deviceType?: string) => (deviceType ?? "").toLowerCase().includes("plug mini");
+
+const getSnapshot = () => window.innerWidth;
+const getServerSnapshot = () => 1024;
+
+const subscribeToResize = (onStoreChange: () => void) => {
+  window.addEventListener("resize", onStoreChange);
+  return () => window.removeEventListener("resize", onStoreChange);
+};
 
 export const EnvironmentStatusBar: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
@@ -40,10 +50,11 @@ export const EnvironmentStatusBar: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const theme = useTheme();
-  const isXs = useMediaQuery(theme.breakpoints.down("sm"));
-  const isSm = useMediaQuery(theme.breakpoints.down("md"));
-  const isMd = useMediaQuery(theme.breakpoints.down("lg"));
-  const maxVisible = isXs ? 1 : isSm ? 2 : isMd ? 3 : 4;
+  const width = useSyncExternalStore(subscribeToResize, getSnapshot, getServerSnapshot);
+  const sm = theme.breakpoints.values.sm;
+  const md = theme.breakpoints.values.md;
+  const lg = theme.breakpoints.values.lg;
+  const maxVisible = width >= lg ? 4 : width >= md ? 3 : width >= sm ? 2 : 1;
 
   const candidateDevices = devices.filter((device) => {
     const def = findDeviceDefinition(device.deviceType);
@@ -59,9 +70,11 @@ export const EnvironmentStatusBar: React.FC = () => {
     .map((id) => candidateDevices.find((d) => d.deviceId === id))
     .filter((d): d is (typeof candidateDevices)[number] => Boolean(d));
 
-  const visibleDevices = pinnedDevices.slice(0, maxVisible);
-
-  const getFormattedValue = (deviceId: string, fieldKey: string): string | undefined => {
+  const getFormattedValue = (
+    deviceId: string,
+    fieldKey: string,
+    options: { allowDerived?: boolean } = {}
+  ): string | undefined => {
     const device = devices.find((d) => d.deviceId === deviceId);
     if (!device) return undefined;
     const statusFields = getStatusFieldsForDevice(device.deviceType);
@@ -70,9 +83,7 @@ export const EnvironmentStatusBar: React.FC = () => {
     const status = statusMap[deviceId];
     const raw = status ? (status as any)[field.key] : undefined;
     if (raw === undefined || raw === null) {
-      // Some formatters (e.g. plug power) can derive values from other fields
-      // even when the primary key is missing — let them try.
-      if (field.formatter) {
+      if (options.allowDerived && field.formatter) {
         const derived = field.formatter(raw, status);
         return derived === undefined || derived === null ? undefined : String(derived);
       }
@@ -86,12 +97,12 @@ export const EnvironmentStatusBar: React.FC = () => {
   const getDeviceSummary = (deviceId: string, deviceType: string | undefined): string => {
     const key = getDeviceKey(deviceType);
     if (key === "plug") {
-      return getFormattedValue(deviceId, "power") ?? "—";
+      return getFormattedValue(deviceId, "power", { allowDerived: true }) ?? "—";
     }
-    const t = getFormattedValue(deviceId, "temperature");
-    const h = getFormattedValue(deviceId, "humidity");
-    const c = getFormattedValue(deviceId, "CO2");
-    return [t ?? "—", h ?? "—", ...(c ? [c] : [])].join(" / ");
+    const temp = getFormattedValue(deviceId, "temperature");
+    const hum = getFormattedValue(deviceId, "humidity");
+    const co2 = getFormattedValue(deviceId, "CO2");
+    return [temp ?? "—", hum ?? "—", ...(co2 ? [co2] : [])].join(" / ");
   };
 
   const handleOpen = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
@@ -112,7 +123,7 @@ export const EnvironmentStatusBar: React.FC = () => {
   const renderDeviceReadings = (deviceId: string, deviceType: string | undefined) => {
     const key = getDeviceKey(deviceType);
     if (key === "plug") {
-      const power = getFormattedValue(deviceId, "power");
+      const power = getFormattedValue(deviceId, "power", { allowDerived: true });
       if (!power) return null;
       return (
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.3 }}>
@@ -157,16 +168,40 @@ export const EnvironmentStatusBar: React.FC = () => {
     );
   };
 
-  const hasVisibleReadings = visibleDevices.some((d) => {
-    const el = renderDeviceReadings(d.deviceId, d.deviceType);
-    return el !== null;
-  });
+  const pinnedDeviceReadings = pinnedDevices.reduce<
+    Array<{ device: (typeof pinnedDevices)[number]; readings: React.ReactNode }>
+  >((items, device) => {
+    const readings = renderDeviceReadings(device.deviceId, device.deviceType);
+    if (readings !== null) {
+      items.push({ device, readings });
+    }
+    return items;
+  }, []);
+  const visibleDeviceReadings = pinnedDeviceReadings.slice(0, maxVisible);
+  const visibleDevices = pinnedDevices.slice(0, maxVisible);
+  const hiddenReadableCount = Math.max(0, pinnedDeviceReadings.length - visibleDeviceReadings.length);
+
+  const ariaDevices =
+    visibleDeviceReadings.length > 0
+      ? visibleDeviceReadings.map(({ device }) => device)
+      : visibleDevices;
+
+  const ariaLabel =
+    ariaDevices.length > 0
+      ? [
+          ...ariaDevices.map((device) => {
+            const deviceName = device.deviceName || t("Unnamed Device");
+            return `${deviceName}: ${getDeviceSummary(device.deviceId, device.deviceType)}`;
+          }),
+          ...(hiddenReadableCount > 0 ? [`+${hiddenReadableCount}`] : []),
+        ].join(", ")
+      : t("Select sensor");
 
   return (
     <>
       <ButtonBase
         onClick={handleOpen}
-        aria-label={t("Select sensor")}
+        aria-label={ariaLabel}
         aria-haspopup="listbox"
         sx={{
           display: "flex",
@@ -180,7 +215,7 @@ export const EnvironmentStatusBar: React.FC = () => {
           "&:hover": { bgcolor: "action.hover" },
         }}
       >
-        {visibleDevices.length > 0 && hasVisibleReadings ? (
+        {visibleDeviceReadings.length > 0 ? (
           <Box
             sx={{
               display: "flex",
@@ -190,29 +225,37 @@ export const EnvironmentStatusBar: React.FC = () => {
               overflow: "hidden",
             }}
           >
-            {visibleDevices.map((device, idx) => {
-              const readings = renderDeviceReadings(device.deviceId, device.deviceType);
-              if (!readings) return null;
-              return (
-                <React.Fragment key={device.deviceId}>
-                  {idx > 0 && (
-                    <Divider
-                      orientation="vertical"
-                      flexItem
-                      sx={{ mx: 0.25, my: 0.5, borderColor: "divider" }}
-                    />
-                  )}
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0 }}>
-                    {readings}
-                  </Box>
-                </React.Fragment>
-              );
-            })}
+            {visibleDeviceReadings.map(({ device, readings }, idx) => (
+              <React.Fragment key={device.deviceId}>
+                {idx > 0 && (
+                  <Divider
+                    orientation="vertical"
+                    flexItem
+                    sx={{ mx: 0.25, my: 0.5, borderColor: "divider" }}
+                  />
+                )}
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0 }}>
+                  {readings}
+                </Box>
+              </React.Fragment>
+            ))}
+            {hiddenReadableCount > 0 && (
+              <Typography variant="caption" color="text.secondary" noWrap>
+                +{hiddenReadableCount}
+              </Typography>
+            )}
           </Box>
         ) : (
-          <Typography variant="body2" color="text.secondary" noWrap>
-            {pinnedDevices.length > 0 ? "—" : t("Select sensor")}
-          </Typography>
+          <>
+            <Typography variant="body2" color="text.secondary" noWrap>
+              {pinnedDevices.length > 0 ? "—" : t("Select sensor")}
+            </Typography>
+            {hiddenReadableCount > 0 && (
+              <Typography variant="caption" color="text.secondary" noWrap>
+                +{hiddenReadableCount}
+              </Typography>
+            )}
+          </>
         )}
         <ArrowDropDownIcon sx={{ fontSize: 18, color: "text.secondary" }} />
       </ButtonBase>

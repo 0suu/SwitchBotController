@@ -99,11 +99,16 @@ export const loadApiCredentials = createAsyncThunk(
         if (ids.length > 0) {
           dispatch(setPinnedEnvironmentDeviceIds(ids));
         }
+        const legacyPinned = await window.electronStore.get("pinnedEnvironmentDeviceId");
+        if (typeof legacyPinned === "string") {
+          deleteSetting("pinnedEnvironmentDeviceId", "legacy pinned environment device");
+        }
       } else {
         // Migrate legacy single-device setting.
         const legacyPinned = await window.electronStore.get("pinnedEnvironmentDeviceId");
         if (typeof legacyPinned === "string") {
           dispatch(setPinnedEnvironmentDeviceIds([legacyPinned]));
+          deleteSetting("pinnedEnvironmentDeviceId", "legacy pinned environment device");
         }
       }
 
@@ -298,7 +303,6 @@ export const settingsSlice = createSlice({
       } else {
         deleteSetting("pinnedEnvironmentDeviceIds", "pinned status bar devices");
       }
-      deleteSetting("pinnedEnvironmentDeviceId", "legacy pinned environment device");
     },
   },
   extraReducers: (builder) => {
