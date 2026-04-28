@@ -6,6 +6,8 @@
 
 [English README is here](README_en.md)
 
+デモページ / Demo: https://switchbot-controller.suu31.net/
+
 Electron デスクトップクライアントで SwitchBot Cloud API を操作し、デバイスの状態確認・操作・シーン実行を行うアプリです。React (Vite) + MUI + Redux Toolkit を採用し、英語/日本語 UI に対応しています。
 
 本アプリのコードの約 99% は AI によって自動生成されており、人間による完全な動作確認やコードレビューは行われていません。  

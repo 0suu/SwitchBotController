@@ -2,6 +2,8 @@
 
 [日本語のREADMEはこちら](README.md)
 
+Demo / デモページ: https://switchbot-controller.suu31.net/
+
 Electron-based desktop client for controlling your SwitchBot devices via the official SwitchBot Cloud API.  
 Built with React (Vite) + MUI + Redux Toolkit, and supports both English and Japanese UI.
 
