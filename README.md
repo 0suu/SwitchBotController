@@ -1,4 +1,6 @@
 # SwitchBot Controller
+## デモ / Demo: https://switchbot-controller.suu31.net/
+
 <p>
   <img src="https://github.com/user-attachments/assets/5a33d24e-edf4-4516-959e-5ae83ae1589a"  width="45%"/>
   <img src="https://github.com/user-attachments/assets/77875e1d-b3d9-42e8-a9dd-1e8936c705c8" width="45%">
@@ -6,7 +8,7 @@
 
 [English README is here](README_en.md)
 
-デモページ / Demo: https://switchbot-controller.suu31.net/
+
 
 Electron デスクトップクライアントで SwitchBot Cloud API を操作し、デバイスの状態確認・操作・シーン実行を行うアプリです。React (Vite) + MUI + Redux Toolkit を採用し、英語/日本語 UI に対応しています。
 
