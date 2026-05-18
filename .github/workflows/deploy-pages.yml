@@ -20,7 +20,7 @@ on:
       project_name:
         description: "Cloudflare Pages project name"
         required: true
-        default: "switchbot-controller"
+        default: "switchbotcontroller"
         type: string
 
 permissions:
