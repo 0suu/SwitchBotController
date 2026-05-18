@@ -96,6 +96,12 @@ Electron Builder の設定 (`package.json` の `build` フィールド) によ�
 - `public/_redirects` に SPA 向けのフォールバック (`/*    /index.html   200`) を配置しています。React Router 等での直リンクアクセスが 200 で配信されます。
 - モックモードでは SwitchBot API へのリクエストを行わず、ダミーデータで画面を動作させます（トークン/シークレットはブラウザへ露出しません）。
 
+任意のブランチを Cloudflare Pages へ手動デプロイする場合は、GitHub Actions の `Deploy Cloudflare Pages` workflow を実行します。
+事前に GitHub リポジトリ Secrets として `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を設定してください。
+workflow 実行時の `repository` に対象リポジトリ (`0suu/SwitchBotController` など)、`ref` にデプロイしたいブランチ名、`project_name` に Cloudflare Pages のプロジェクト名を指定します。
+fork したリポジトリのブランチをデプロイする場合は、`repository` に fork 先 (`user/SwitchBotController` など) を指定します。
+Cloudflare Pages 上の preview branch 名を `ref` と分けたい場合は、`pages_branch` を指定します。
+
 ## 必要環境
 - Node.js 20 以上推奨（Electron 36 ベース）
 - npm
