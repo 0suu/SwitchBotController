@@ -751,7 +751,7 @@ const definitions: DeviceDefinition[] = [
   },
   {
     key: "meter",
-    matchers: ["meter plus", "meter pro co2", "meter pro", "outdoor meter", "meter"],
+    matchers: ["meter plus", "meter pro co2", "meter pro", "outdoor meter", "meter", "woiosensor"],
     statusFields: [
       ...tempHumidityFields,
       {
