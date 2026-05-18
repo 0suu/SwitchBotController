@@ -30,7 +30,7 @@ export interface SwitchBotBridgeAPI {
 
 export interface AutoUpdaterAPI {
   checkForUpdates: () => Promise<{ success: boolean; version?: string; error?: string }>;
-  installUpdate: () => Promise<void>;
+  installUpdate: () => Promise<{ success: boolean; error?: string }>;
   onUpdateAvailable: (callback: (info: { version: string }) => void) => () => void;
   onUpdateDownloaded: (callback: (info: { version: string }) => void) => () => void;
   onDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;

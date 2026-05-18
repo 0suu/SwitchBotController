@@ -377,7 +377,21 @@ ipcMain.handle("updater-check", async () => {
 });
 
 ipcMain.handle("updater-install", () => {
-  autoUpdater.quitAndInstall(false, true);
+  if (!app.isPackaged) {
+    return { success: false, error: "Update installation is not available in development mode." };
+  }
+
+  try {
+    if (process.platform === "darwin") {
+      autoUpdater.quitAndInstall();
+    } else {
+      autoUpdater.quitAndInstall(false, true);
+    }
+    return { success: true };
+  } catch (error: any) {
+    console.error("[AutoUpdater] Install failed:", error.message);
+    return { success: false, error: error.message };
+  }
 });
 
 console.log("[Main] electron-store initialized. IPC handlers ready.");

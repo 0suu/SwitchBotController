@@ -165,6 +165,8 @@ function App() {
   const [updateReady, setUpdateReady] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const [updateDismissed, setUpdateDismissed] = useState(false);
+  const [updateInstalling, setUpdateInstalling] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!window.autoUpdater) return;
@@ -173,6 +175,7 @@ function App() {
       setUpdateVersion(info.version);
       setDownloadProgress(0);
       setUpdateDismissed(false);
+      setUpdateError(null);
     });
     const unsubProgress = window.autoUpdater.onDownloadProgress((info) => {
       setDownloadProgress(info.percent);
@@ -182,9 +185,13 @@ function App() {
       setUpdateReady(true);
       setDownloadProgress(null);
       setUpdateDismissed(false);
+      setUpdateInstalling(false);
+      setUpdateError(null);
     });
-    const unsubError = window.autoUpdater.onUpdateError(() => {
+    const unsubError = window.autoUpdater.onUpdateError((info) => {
       setDownloadProgress(null);
+      setUpdateInstalling(false);
+      setUpdateError(info.message);
     });
 
     return () => {
@@ -195,9 +202,17 @@ function App() {
     };
   }, []);
 
-  const handleInstallUpdate = useCallback(() => {
-    window.autoUpdater?.installUpdate();
-  }, []);
+  const handleInstallUpdate = useCallback(async () => {
+    if (!window.autoUpdater || updateInstalling) return;
+
+    setUpdateInstalling(true);
+    setUpdateError(null);
+    const result = await window.autoUpdater.installUpdate();
+    if (!result.success) {
+      setUpdateInstalling(false);
+      setUpdateError(result.error || t("Update error"));
+    }
+  }, [t, updateInstalling]);
 
   const navigateTo = (view: View) => { setCurrentView(view); };
   const handleDeviceSelect = (deviceId: string) => { setSelectedDeviceId(deviceId); navigateTo("detail"); };
@@ -279,20 +294,20 @@ function App() {
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          severity="success"
+          severity={updateError ? "error" : "success"}
           sx={{ width: "100%" }}
           action={
             <Box sx={{ display: "flex", gap: 1 }}>
-              <Button color="inherit" size="small" onClick={() => setUpdateDismissed(true)}>
+              <Button color="inherit" size="small" onClick={() => setUpdateDismissed(true)} disabled={updateInstalling}>
                 {t("Later")}
               </Button>
-              <Button color="inherit" size="small" variant="outlined" onClick={handleInstallUpdate}>
-                {t("Restart now")}
+              <Button color="inherit" size="small" variant="outlined" onClick={handleInstallUpdate} disabled={updateInstalling}>
+                {updateInstalling ? t("Installing update") : t("Restart now")}
               </Button>
             </Box>
           }
         >
-          {t("Update ready").replace("{version}", updateVersion || "")}
+          {updateError || t("Update ready").replace("{version}", updateVersion || "")}
         </Alert>
       </Snackbar>
     </ThemeProvider>
