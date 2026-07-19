@@ -1,0 +1,29 @@
+name: Temp Quest KeepAwake APK
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'quest-keepawake-build/**'
+      - '.github/workflows/temp-quest-keepawake-build.yml'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.4'
+      - name: Install SDK 33
+        run: sdkmanager 'platforms;android-33' 'build-tools;33.0.2'
+      - name: Build debug APK
+        run: gradle -p quest-keepawake-build assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: QuestNavKeepAwake-always-on-debug
+          path: quest-keepawake-build/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
