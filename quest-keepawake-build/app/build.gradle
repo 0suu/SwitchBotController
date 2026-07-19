@@ -1,0 +1,9 @@
+plugins { id 'com.android.application' }
+android {
+    namespace 'com.questnav.keepawake'
+    compileSdk 33
+    defaultConfig { applicationId 'com.questnav.keepawake'; minSdk 29; targetSdk 32; versionCode 2; versionName '1.1-always-on' }
+    buildTypes { release { minifyEnabled false }; debug { minifyEnabled false } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    lint { abortOnError false }
+}
