@@ -20,7 +20,8 @@
     "package": "npm run build && electron-builder",
     "test:watch": "cross-env TMPDIR=/tmp jest --watch",
     "test:coverage": "cross-env TMPDIR=/tmp jest --coverage",
-    "package:linux:arm64": "npm run build && electron-builder --linux tar.gz --arm64 --publish never"
+    "package:linux:arm64": "npm run build && node scripts/linux/build-info.js && electron-builder --linux tar.gz --arm64 --publish never && node scripts/build-linux-installer.js",
+    "test:linux-installer": "node --test scripts/linux/installer.test.js"
   },
   "repository": {
     "type": "git",
@@ -49,6 +50,7 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "license-checker-rseidelsohn": "^4.4.2",
+    "pngjs": "7.0.0",
     "ts-jest": "^29.3.4",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
@@ -128,7 +130,17 @@
       ],
       "category": "Utility",
       "icon": "assets/icon.png",
-      "artifactName": "${name}-${version}-linux-${arch}.${ext}"
+      "artifactName": "${name}-${version}-linux-${arch}.${ext}",
+      "extraResources": [
+        {
+          "from": "assets/icon.png",
+          "to": "icon.png"
+        },
+        {
+          "from": "build/linux-build-info.json",
+          "to": "build-info.json"
+        }
+      ]
     }
   }
 }

@@ -4,7 +4,12 @@ on:
   pull_request:
     branches: [main, develop]
   push:
+    branches: [main, develop]
   workflow_dispatch:
+
+concurrency:
+  group: linux-arm64-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -12,6 +17,8 @@ permissions:
 jobs:
   package:
     runs-on: ubuntu-24.04-arm
+    env:
+      PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,7 +26,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Prepare desktop test tools in runner-owned storage
+        run: bash scripts/linux/prepare-ci-tools.sh
       - run: npm test -- --runInBand
+      - run: npm run test:linux-installer
       - name: Build portable ARM64 archive (never publish)
         run: npm run package:linux:arm64
       - name: Inspect native architecture and packaged application files
@@ -32,5 +42,18 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: switchbot-controller-linux-arm64
-          path: release/*-linux-arm64.tar.gz
+          path: |
+            release/*-linux-arm64.tar.gz
+            release/*-linux-arm64.run
+          retention-days: 7
+          compression-level: 0
           if-no-files-found: error
+      - name: Try installed desktop launch with the default sandbox
+        run: dbus-run-session -- node scripts/linux/gui-smoke.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-arm64-desktop-evidence
+          path: release/gui-evidence/
+          if-no-files-found: ignore
+          retention-days: 7

@@ -5,7 +5,7 @@ import Store from "electron-store";
 import axios from "axios";
 import crypto from "crypto";
 import { autoUpdater } from "electron-updater";
-import { getUpdateUnavailableReason } from "./updatePolicy";
+import { getUpdateMode, getUpdateUnavailableReason } from "./updatePolicy";
 
 // Define a schema for your store if you want type safety and defaults
 interface AppSettings {
@@ -106,6 +106,9 @@ function createWindow(): BrowserWindow {
     height: savedBounds?.height ?? 700,
     x: savedBounds?.x,
     y: savedBounds?.y,
+    icon: process.platform === "linux"
+      ? path.join(app.isPackaged ? process.resourcesPath : path.join(app.getAppPath(), "assets"), "icon.png")
+      : undefined,
     webPreferences: {
       preload: path.join(__dirname, "../preload/preload.js"),
       contextIsolation: true,
@@ -364,6 +367,8 @@ function setupAutoUpdater(win: BrowserWindow) {
     send("update-error", { message: err.message });
   });
 }
+
+ipcMain.handle("updater-mode", () => getUpdateMode(app.isPackaged, process.platform));
 
 ipcMain.handle("updater-check", async () => {
   const unavailableReason = getUpdateUnavailableReason(app.isPackaged, process.platform);

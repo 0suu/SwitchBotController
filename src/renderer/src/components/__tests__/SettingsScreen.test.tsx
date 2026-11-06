@@ -30,7 +30,7 @@ describe('SettingsScreen', () => {
 
   function mockUpdater(manualUpdates = false) {
     window.autoUpdater = {
-      manualUpdates,
+      getMode: jest.fn().mockResolvedValue(manualUpdates ? "manual" : "automatic"),
       checkForUpdates: jest.fn().mockResolvedValue({ success: false, error: 'Unavailable' }),
       installUpdate: jest.fn(),
       onUpdateAvailable: jest.fn(() => jest.fn()),
@@ -50,9 +50,18 @@ describe('SettingsScreen', () => {
   it('explains manual Linux updates without offering an unsupported check', async () => {
     mockUpdater(true);
     await renderSettings();
-    expect(screen.getByText(/Linux: update manually/)).toBeInTheDocument();
+    expect(screen.getByText(/Update manually using/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Check for updates/i })).not.toBeInTheDocument();
     expect(window.autoUpdater.checkForUpdates).not.toHaveBeenCalled();
+  });
+
+  it('explains source-mode update availability without Linux archive instructions', async () => {
+    mockUpdater();
+    (window.autoUpdater.getMode as jest.Mock).mockResolvedValue("development");
+    await renderSettings();
+    expect(screen.getByText(/Automatic updates are unavailable when running from source/)).toBeInTheDocument();
+    expect(screen.queryByText(/Update manually using/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Check for updates/i })).not.toBeInTheDocument();
   });
 
   it.each(['failure response', 'rejected IPC'])('reenables update checking after %s', async (failure) => {

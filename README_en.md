@@ -12,7 +12,9 @@ The author assumes no responsibility or liability for any issues, malfunctions, 
 
 ## Steam Frame / Linux ARM64
 
-A native Linux ARM64 tar.gz build can run from a folder under your home directory on the KDE desktop. See the [Steam Frame guide](Doc/STEAM_FRAME.md) for build downloads, setup, runtime requirements, manual updates, and hardware acceptance checks.
+**Not tested on actual Steam Frame hardware.** Launching, graphics/input, sandbox behavior, and Cloud API operation still require hardware validation. Draft PR artifacts are not approved releases.
+
+A native Linux ARM64 .run installer sets up a user-space application and menu icon; a portable tar.gz fallback is also included. See the [Steam Frame guide](Doc/STEAM_FRAME.md) for build downloads, setup, runtime requirements, manual updates, and hardware acceptance checks.
 
 ```sh
 npm ci

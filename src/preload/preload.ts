@@ -39,7 +39,7 @@ contextBridge.exposeInMainWorld("switchBotBridge", switchBotBridgeApi);
 
 // Auto-updater API
 export interface AutoUpdaterAPI {
-  manualUpdates: boolean;
+  getMode: () => Promise<"automatic" | "manual" | "development">;
   checkForUpdates: () => Promise<{ success: boolean; version?: string; error?: string }>;
   installUpdate: () => Promise<void>;
   onUpdateAvailable: (callback: (info: { version: string }) => void) => () => void;
@@ -50,7 +50,7 @@ export interface AutoUpdaterAPI {
 }
 
 const autoUpdaterApi: AutoUpdaterAPI = {
-  manualUpdates: process.platform === "linux",
+  getMode: () => ipcRenderer.invoke("updater-mode"),
   checkForUpdates: () => ipcRenderer.invoke("updater-check"),
   installUpdate: () => ipcRenderer.invoke("updater-install"),
   onUpdateAvailable: (callback) => {
