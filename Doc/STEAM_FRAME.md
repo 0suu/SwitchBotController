@@ -71,7 +71,10 @@ ZIPを展開し、Konsoleで上記の `sh ...run` を一度実行すれば、ア
 
 ## Updates, rollback, and credentials
 
-Linux archive installs use **manual updates**. Run a newer trusted `.run` with
+Linux archive installs use **manual updates**. **Quit the app before an update or rollback**; the installer does not stop a running app for you.
+更新・巻き戻しの前にアプリを終了してください。インストーラーは実行中のアプリを停止しません。
+
+Run a newer trusted `.run` with
 exactly the same destination settings. The payload and icon are checked before
 activation; a version pointer is then replaced atomically. An ordinary failed
 update leaves the previous working launcher intact. Reinstalling the same payload
