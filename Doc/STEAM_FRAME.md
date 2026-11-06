@@ -110,7 +110,8 @@ Before calling the build supported on a Steam Frame, test the exact artifact
 and record the commit, SteamOS version, session type, and any launch flags:
 
 - Start in KDE with the sandbox enabled, using an empty temporary profile first:
-  `./switchbot-controller --user-data-dir="$(mktemp -d)"`.
+  `XDG_CONFIG_HOME="$(mktemp -d)" ./switchbot-controller`. Confirm the logged
+  config path is inside that temporary directory before proceeding.
 - Check window rendering, keyboard/pointer input, both languages, theme, and
   desktop menu launching. Confirm there are no missing-library or sandbox errors.
 - With an explicitly chosen test account/device, save credentials, restart,
