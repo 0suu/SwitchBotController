@@ -36,7 +36,6 @@ done
 case "$(uname -m)" in aarch64|arm64) ;; *) fail 'This build requires ARM64 (aarch64), not x64.' ;; esac
 [ "$(id -u)" != 0 ] || fail 'Run as your normal desktop user, without sudo.'
 [ -x /usr/bin/env ] || fail 'Missing desktop launcher dependency: /usr/bin/env'
-[ -x /bin/bash ] || fail 'Missing launcher dependency: /bin/bash'
 for command_name in tar tail awk sha256sum mktemp mv ln readlink grep; do
   command -v "$command_name" >/dev/null || fail "Missing command: $command_name"
 done
@@ -176,12 +175,6 @@ validate_version() {
     && [ -f "$directory/resources/icon.png" ] && [ ! -L "$directory/resources/icon.png" ] \
     && [ -f "$directory/$app_id.desktop" ] && [ ! -L "$directory/$app_id.desktop" ] \
     || fail "Unrecognized or incomplete installed version: $directory"
-  if [ -e "$directory/$app_id.bin" ] || [ -L "$directory/$app_id.bin" ]; then
-    [ -f "$directory/$app_id.bin" ] && [ ! -L "$directory/$app_id.bin" ] && [ -x "$directory/$app_id.bin" ] \
-      && [ -f "$directory/.launcher-sha256" ] && [ ! -L "$directory/.launcher-sha256" ] \
-      && [ "$(sha256sum < "$directory/$app_id" | awk '{print $1}')" = "$(cat "$directory/.launcher-sha256")" ] \
-      || fail "Installed launcher was changed: $directory"
-  fi
   [ "$(sha256sum < "$directory/$app_id.desktop" | awk '{print $1}')" = "$(cat "$directory/.desktop-sha256")" ] \
     || fail "Installed desktop entry was changed: $directory"
   [ "$(sha256sum < "$directory/resources/icon.png" | awk '{print $1}')" = "$(cat "$directory/.icon-sha256")" ] \
@@ -218,14 +211,6 @@ else
   if [ -e "$root/$next" ] || [ -L "$root/$next" ]; then
     validate_version "$next"
   else
-    # Executing the ELF through ~/.local/bin can make Chromium search there for
-    # ICU/resources. Exec the actual ELF inside its bundle directory instead.
-    # %q produces a literal Bash argument; paths are never passed to eval.
-    [ ! -e "$bundle/$app_id.bin" ] && [ ! -L "$bundle/$app_id.bin" ] || fail 'Unexpected native-binary collision in payload.'
-    mv -- "$bundle/$app_id" "$bundle/$app_id.bin"
-    printf '#!/bin/bash\nexec %q "$@"\n' "$root/current/$app_id.bin" > "$bundle/$app_id"
-    chmod u+x "$bundle/$app_id"
-    sha256sum < "$bundle/$app_id" | awk '{print $1}' > "$bundle/.launcher-sha256"
     {
       printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=SwitchBot Controller' 'Comment=Control SwitchBot devices using the Cloud API'
       # GIO checks the first Exec word before expanding %% field escapes.

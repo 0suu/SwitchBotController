@@ -20,6 +20,8 @@ delete env.ELECTRON_DISABLE_SANDBOX;
 fs.mkdirSync(env.XDG_RUNTIME_DIR, { mode: 0o700 });
 let displayServer;
 let appPid;
+let nativeExecutable;
+env.SWITCHBOT_GUI_SMOKE_ID = temporary;
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, { env, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, ...options });
@@ -88,6 +90,7 @@ async function main() {
   const installed = path.join(env.XDG_DATA_HOME, 'switchbot-controller/current');
   const desktop = path.join(env.XDG_DATA_HOME, 'applications/switchbot-controller.desktop');
   const buildInfo = JSON.parse(fs.readFileSync(path.join(installed, 'resources/build-info.json')));
+  nativeExecutable = fs.realpathSync(path.join(installed, 'switchbot-controller'));
   report.buildInfo = buildInfo;
   if (buildInfo.buildCommit !== run('git', ['rev-parse', 'HEAD']).trim()) throw new Error('Payload build commit does not match checkout');
   const expected = PNG.sync.read(fs.readFileSync('assets/icon.png'));
@@ -96,11 +99,14 @@ async function main() {
   run('desktop-file-validate', [desktop]);
   report.installation = 'passed';
   report.desktopEntry = fs.readFileSync(desktop, 'utf8');
-  const libraries = run('ldd', [path.join(installed, 'switchbot-controller.bin')]);
+  const libraries = run('ldd', [path.join(installed, 'switchbot-controller')]);
   fs.writeFileSync(path.join(evidence, 'runtime-libraries.txt'), libraries);
   if (libraries.includes('not found')) { blocked(`Missing runtime libraries: ${libraries.split('\n').filter(line => line.includes('not found')).join('; ')}`); return; }
   for (const name of ['Xvfb', 'xprop', 'xwininfo', 'xwd', 'gio']) {
-    if (spawnSync('which', [name], { env }).status !== 0) { blocked(`Missing GUI test tool: ${name}`); return; }
+    const helper = spawnSync('which', [name], { env, encoding: 'utf8' });
+    if (helper.status !== 0) { blocked(`Missing GUI test tool: ${name}`); return; }
+    const dependencies = run('ldd', [helper.stdout.trim()]);
+    if (dependencies.includes('not found')) { blocked(`GUI helper ${name} has missing libraries: ${dependencies}`); return; }
   }
   displayServer = spawn('Xvfb', ['-displayfd', '3', '-screen', '0', '1280x900x24', '-nolisten', 'tcp', '-ac'],
     { env, stdio: ['ignore', log, log, 'pipe'] });
@@ -130,10 +136,10 @@ async function main() {
   if (!properties.includes('"switchbot-controller", "switchbot-controller"')) throw new Error('Unexpected actual WM_CLASS');
   appPid = Number(properties.match(/_NET_WM_PID[^=]*=\s*(\d+)/)?.[1]);
   const iconProperty = run('xprop', ['-id', window, '-notype', '-f', '_NET_WM_ICON', '32c', '_NET_WM_ICON']);
-  verifyWindowIcon(iconProperty, expected);
   run('xwd', ['-root', '-silent', '-out', path.join(evidence, 'desktop.xwd')]);
   xwdToPng(path.join(evidence, 'desktop.xwd'), path.join(evidence, 'desktop.png'));
   fs.unlinkSync(path.join(evidence, 'desktop.xwd'));
+  verifyWindowIcon(iconProperty, expected);
   const output = fs.readFileSync(path.join(evidence, 'launch.log'), 'utf8');
   if (!output.includes(path.join(env.XDG_CONFIG_HOME, 'switchbot-controller'))) throw new Error('App did not confirm isolated config path');
   report.result = 'passed';
@@ -142,14 +148,48 @@ async function main() {
   report.windowIcon = '512px runtime property matches packaged pixels (allowing native edge rounding)';
 }
 
-main().catch(error => { report.result = 'failed'; report.reason = error.stack; process.exitCode = 1; }).finally(() => {
-  if (appPid) { try { process.kill(appPid, 'SIGTERM'); } catch {} }
+function testProcesses() {
+  const marker = Buffer.from(`SWITCHBOT_GUI_SMOKE_ID=${temporary}\0`);
+  const pids = [];
+  for (const entry of fs.readdirSync('/proc')) {
+    if (!/^\d+$/.test(entry) || Number(entry) === process.pid) continue;
+    let marked = false;
+    let executable;
+    let argumentZero;
+    try {
+      const stat = fs.readFileSync(`/proc/${entry}/stat`, 'utf8');
+      if (stat.slice(stat.lastIndexOf(')') + 2).startsWith('Z')) continue;
+    } catch { continue; }
+    try { marked = fs.readFileSync(`/proc/${entry}/environ`).includes(marker); } catch {}
+    try { executable = fs.readlinkSync(`/proc/${entry}/exe`); } catch {}
+    try { argumentZero = fs.readFileSync(`/proc/${entry}/cmdline`, 'utf8').split('\0')[0]; } catch {}
+    const stable = path.join(home, '.local/bin/switchbot-controller');
+    const current = path.join(env.XDG_DATA_HOME, 'switchbot-controller/current/switchbot-controller');
+    if (marked || (nativeExecutable && [executable, argumentZero].includes(nativeExecutable)) ||
+        argumentZero === stable || argumentZero === current) pids.push(Number(entry));
+  }
+  return pids;
+}
+async function stopTestProcesses() {
+  const signal = (pids, type) => pids.forEach(pid => { try { process.kill(pid, type); } catch {} });
+  signal(testProcesses(), 'SIGTERM');
+  for (let attempt = 0; attempt < 40 && testProcesses().length; attempt++) await delay(50);
+  signal(testProcesses(), 'SIGKILL');
+  for (let attempt = 0; attempt < 20 && testProcesses().length; attempt++) await delay(50);
+  return testProcesses().length === 0;
+}
+
+main().catch(error => { report.result = 'failed'; report.reason = error.stack; process.exitCode = 1; }).finally(async () => {
+  // GIO launches asynchronously. Stop every marked test child and wait before
+  // deleting its files, including failures before a window/PID was discovered.
+  const stopped = await stopTestProcesses();
   displayServer?.kill();
+  report.cleanup = stopped ? 'Test processes stopped before removing temporary files' : 'Temporary files retained: a test process is still running';
   fs.closeSync(log);
   fs.writeFileSync(path.join(evidence, 'result.json'), `${JSON.stringify(report, null, 2)}\n`);
   if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
     `### Native Linux desktop GUI check: ${report.result}\n\n${report.reason || report.windowIcon || ''}\n\nNo Steam Frame hardware or live-device test occurred.\n`);
   console.log(JSON.stringify(report, null, 2));
   // The directory is exclusively this invocation's temporary profile/install.
-  fs.rmSync(temporary, { recursive: true, force: true });
+  if (stopped) fs.rmSync(temporary, { recursive: true, force: true });
 });

@@ -98,8 +98,7 @@ describe('Linux user-space installer', { skip: process.platform !== 'linux' }, (
     const args = ['space here', 'quote"', '$money', '%U', '日本語', ''];
     passed(spawnSync(s.executable, args, { env: s.env, encoding: 'utf8' }));
     assert.deepEqual(fs.readFileSync(s.argsFile).toString().split('\0').slice(0, -1), args);
-    assert.equal(fs.readFileSync(s.env.SB_TEST_EXECUTABLE, 'utf8'), path.join(s.appRoot, 'current/switchbot-controller.bin'));
-    assert.match(fs.readFileSync(path.join(s.appRoot, 'current/switchbot-controller'), 'utf8'), /^#!\/bin\/bash/);
+    assert.equal(fs.readFileSync(s.env.SB_TEST_EXECUTABLE, 'utf8'), s.executable);
     const installedIcon = path.join(s.appRoot, 'current/resources/icon.png');
     assert.equal(sha(installedIcon), sha(icon));
     assert.ok(fs.readFileSync(s.desktop, 'utf8').includes(`Icon=${installedIcon}`));
