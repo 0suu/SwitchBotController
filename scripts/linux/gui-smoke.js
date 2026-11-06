@@ -73,7 +73,7 @@ function verifyWindowIcon(text, expected) {
     if (image.data[i + 3] !== expected.data[i + 3]) throw new Error('Window icon alpha differs from packaged asset');
     if (!expected.data[i + 3]) continue;
     // Native image premultiplication can round partially transparent edges.
-    const tolerance = expected.data[i + 3] === 255 ? 0 : Math.ceil(255 / expected.data[i + 3]);
+    const tolerance = expected.data[i + 3] === 255 ? 0 : 4;
     for (let c = 0; c < 3; c++) if (Math.abs(image.data[i + c] - expected.data[i + c]) > tolerance) {
       throw new Error('Window icon pixels differ from the packaged asset');
     }
@@ -96,7 +96,7 @@ async function main() {
   run('desktop-file-validate', [desktop]);
   report.installation = 'passed';
   report.desktopEntry = fs.readFileSync(desktop, 'utf8');
-  const libraries = run('ldd', [path.join(installed, 'switchbot-controller')]);
+  const libraries = run('ldd', [path.join(installed, 'switchbot-controller.bin')]);
   fs.writeFileSync(path.join(evidence, 'runtime-libraries.txt'), libraries);
   if (libraries.includes('not found')) { blocked(`Missing runtime libraries: ${libraries.split('\n').filter(line => line.includes('not found')).join('; ')}`); return; }
   for (const name of ['Xvfb', 'xprop', 'xwininfo', 'xwd', 'gio']) {

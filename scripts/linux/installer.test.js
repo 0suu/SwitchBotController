@@ -21,7 +21,7 @@ function fixture(base, version = '1', mutate = () => {}) {
   const root = `switchbot-fixture-${version}`;
   const source = path.join(base, root);
   fs.mkdirSync(path.join(source, 'resources'), { recursive: true });
-  fs.writeFileSync(path.join(source, 'switchbot-controller'), '#!/bin/sh\nprintf "%s\\0" "$@" > "$SB_TEST_ARGUMENTS"\n', { mode: 0o755 });
+  fs.writeFileSync(path.join(source, 'switchbot-controller'), '#!/bin/sh\nprintf "%s\\0" "$@" > "$SB_TEST_ARGUMENTS"\nif [ -n "${SB_TEST_EXECUTABLE:-}" ]; then printf "%s" "$0" > "$SB_TEST_EXECUTABLE"; fi\n', { mode: 0o755 });
   fs.writeFileSync(path.join(source, 'resources/app.asar'), `fixture-${version}`);
   fs.copyFileSync(icon, path.join(source, 'resources/icon.png'));
   fs.writeFileSync(path.join(source, 'resources/build-info.json'), '{}');
@@ -78,7 +78,8 @@ describe('Linux user-space installer', { skip: process.platform !== 'linux' }, (
       fs.writeFileSync(path.join(tools, 'id'), '#!/bin/sh\necho 1000\n', { mode: 0o755 });
     }
     const argsFile = path.join(base, 'arguments');
-    const env = { ...process.env, PATH: `${tools}:${process.env.PATH}`, SB_TEST_ARGUMENTS: argsFile };
+    const env = { ...process.env, PATH: `${tools}:${process.env.PATH}`, SB_TEST_ARGUMENTS: argsFile,
+      SB_TEST_EXECUTABLE: path.join(base, "invoked-executable") };
     const install = (file, args = []) => spawnSync('sh', [file, '--prefix', prefix, ...args], { env, encoding: 'utf8' });
     const appRoot = path.join(prefix, 'share/switchbot-controller');
     const executable = path.join(prefix, 'bin/switchbot-controller');
@@ -97,6 +98,8 @@ describe('Linux user-space installer', { skip: process.platform !== 'linux' }, (
     const args = ['space here', 'quote"', '$money', '%U', '日本語', ''];
     passed(spawnSync(s.executable, args, { env: s.env, encoding: 'utf8' }));
     assert.deepEqual(fs.readFileSync(s.argsFile).toString().split('\0').slice(0, -1), args);
+    assert.equal(fs.readFileSync(s.env.SB_TEST_EXECUTABLE, 'utf8'), path.join(s.appRoot, 'current/switchbot-controller.bin'));
+    assert.match(fs.readFileSync(path.join(s.appRoot, 'current/switchbot-controller'), 'utf8'), /^#!\/bin\/bash/);
     const installedIcon = path.join(s.appRoot, 'current/resources/icon.png');
     assert.equal(sha(installedIcon), sha(icon));
     assert.ok(fs.readFileSync(s.desktop, 'utf8').includes(`Icon=${installedIcon}`));
