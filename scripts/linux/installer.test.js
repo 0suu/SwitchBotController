@@ -54,6 +54,14 @@ test('builder refuses unsafe names, source/output collisions, and symlink output
   const link = path.join(base, 'link.run');
   fs.symlinkSync(archive, link);
   assert.throws(() => buildInstaller(archive, link, 'safe', icon), /symlink/);
+  fs.unlinkSync(link);
+  fs.symlinkSync(path.join(base, 'nonexistent'), link);
+  assert.throws(() => buildInstaller(archive, link, 'safe', icon), /symlink/);
+  const output = path.join(base, 'new.run');
+  const collision = `${output}.tmp-${process.pid}`;
+  fs.writeFileSync(collision, 'unrelated');
+  assert.throws(() => buildInstaller(archive, output, 'safe', icon), /EEXIST/);
+  assert.equal(fs.readFileSync(collision, 'utf8'), 'unrelated');
 });
 
 describe('Linux user-space installer', { skip: process.platform !== 'linux' }, () => {
@@ -97,7 +105,8 @@ describe('Linux user-space installer', { skip: process.platform !== 'linux' }, (
 
   test('reinstall, update, and rollback preserve the previous version and unrelated config', () => {
     const s = setup();
-    const config = path.join(s.prefix, 'config.json');
+    const config = path.join(s.base, 'profile/switchbot-controller/switchbot-controller-config.json');
+    fs.mkdirSync(path.dirname(config), { recursive: true });
     fs.writeFileSync(config, 'unchanged-secret-placeholder');
     const first = fixture(s.base, '1');
     const second = fixture(s.base, '2');
@@ -140,21 +149,34 @@ describe('Linux user-space installer', { skip: process.platform !== 'linux' }, (
   });
 
   test('protects foreign application directories, launchers, symlinks, and installer collisions', () => {
-    for (const collision of ['directory', 'file', 'symlink', 'source']) {
+    for (const collision of ['directory', 'file', 'symlink', 'source', 'desktop', 'parent-symlink']) {
       const s = setup();
       let f = fixture(s.base);
+      let preserved;
       if (collision === 'directory') {
         fs.mkdirSync(s.appRoot, { recursive: true });
         fs.writeFileSync(path.join(s.appRoot, 'unrelated'), 'keep');
+        preserved = path.join(s.appRoot, 'unrelated');
+      } else if (collision === 'desktop') {
+        fs.mkdirSync(path.dirname(s.desktop), { recursive: true });
+        fs.writeFileSync(s.desktop, 'keep');
+        preserved = s.desktop;
+      } else if (collision === 'parent-symlink') {
+        const foreign = path.join(s.base, 'foreign');
+        fs.mkdirSync(foreign);
+        fs.writeFileSync(path.join(foreign, 'keep'), 'keep');
+        fs.symlinkSync(foreign, path.dirname(s.executable));
+        preserved = path.join(foreign, 'keep');
       } else {
+        preserved = s.executable;
         fs.mkdirSync(path.dirname(s.executable), { recursive: true });
         if (collision === 'symlink') fs.symlinkSync(f.archive, s.executable);
         else if (collision === 'source') { fs.copyFileSync(f.installer, s.executable); f.installer = s.executable; }
         else fs.writeFileSync(s.executable, 'keep');
       }
-      const before = collision === 'directory' ? fs.readFileSync(path.join(s.appRoot, 'unrelated')) : fs.readFileSync(s.executable);
+      const before = fs.readFileSync(preserved);
       failed(s.install(f.installer));
-      const after = collision === 'directory' ? fs.readFileSync(path.join(s.appRoot, 'unrelated')) : fs.readFileSync(s.executable);
+      const after = fs.readFileSync(preserved);
       assert.deepEqual(after, before);
     }
   });

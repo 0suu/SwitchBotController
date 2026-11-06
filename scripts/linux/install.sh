@@ -129,7 +129,7 @@ if ! "$rollback"; then
   payload_line=$(awk '/^__SWITCHBOT_PAYLOAD__$/ { print NR + 1; exit }' "$0")
   [ -n "$payload_line" ] || fail 'Missing embedded payload.'
   tail -n +"$payload_line" -- "$0" > "$stage/payload.tar.gz"
-  [ "$(sha256sum "$stage/payload.tar.gz" | awk '{print $1}')" = "$payload_sha" ] || fail 'Payload checksum mismatch.'
+  [ "$(sha256sum < "$stage/payload.tar.gz" | awk '{print $1}')" = "$payload_sha" ] || fail 'Payload checksum mismatch.'
   tar -tzf "$stage/payload.tar.gz" > "$stage/entries"
   while IFS= read -r entry; do
     case "$entry" in "$archive_root/"|"$archive_root/"*) ;; *) fail "Unexpected archive entry: $entry" ;; esac
@@ -142,7 +142,7 @@ if ! "$rollback"; then
   bundle="$stage/unpacked/$archive_root"
   [ -f "$bundle/$app_id" ] && [ -x "$bundle/$app_id" ] && [ -f "$bundle/resources/app.asar" ] \
     && [ -f "$bundle/resources/icon.png" ] || fail 'Incomplete application payload.'
-  [ "$(sha256sum "$bundle/resources/icon.png" | awk '{print $1}')" = "$icon_sha" ] || fail 'Packaged icon checksum mismatch.'
+  [ "$(sha256sum < "$bundle/resources/icon.png" | awk '{print $1}')" = "$icon_sha" ] || fail 'Packaged icon checksum mismatch.'
 fi
 
 check_root
@@ -150,7 +150,8 @@ if [ ! -d "$root" ]; then
   mkdir -- "$root"
   printf '%s\n' "$app_id" > "$root/.installer-v1"
 fi
-mkdir -- "$root/.install-lock" || fail "Another installer may be running. If none is running, remove the empty lock with: rmdir '$root/.install-lock'"
+printf -v remove_lock_command 'rmdir -- %q' "$root/.install-lock"
+mkdir -- "$root/.install-lock" || fail "Another installer may be running. If none is running, remove the empty lock with: $remove_lock_command"
 locked=true
 ensure_directory "$root/versions"
 ensure_directory "$bin_dir"
@@ -162,6 +163,9 @@ validate_version() {
   local target=$1 directory="$root/$1"
   [[ "$target" =~ ^versions/[0-9a-f]{64}$ ]] || fail 'Unrecognized installed version link.'
   [ -d "$directory" ] && [ ! -L "$directory" ] && [ -O "$directory" ] \
+    && [ -d "$directory/resources" ] && [ ! -L "$directory/resources" ] \
+    && [ -f "$directory/.install-root" ] && [ ! -L "$directory/.install-root" ] && [ "$(cat "$directory/.install-root")" = "$root" ] \
+    && [ -f "$directory/.desktop-sha256" ] && [ ! -L "$directory/.desktop-sha256" ] \
     && [ -f "$directory/.payload-sha256" ] && [ ! -L "$directory/.payload-sha256" ] \
     && [ "$(cat "$directory/.payload-sha256")" = "${target#versions/}" ] \
     && [ -f "$directory/.icon-sha256" ] && [ ! -L "$directory/.icon-sha256" ] \
@@ -170,7 +174,9 @@ validate_version() {
     && [ -f "$directory/resources/icon.png" ] && [ ! -L "$directory/resources/icon.png" ] \
     && [ -f "$directory/$app_id.desktop" ] && [ ! -L "$directory/$app_id.desktop" ] \
     || fail "Unrecognized or incomplete installed version: $directory"
-  [ "$(sha256sum "$directory/resources/icon.png" | awk '{print $1}')" = "$(cat "$directory/.icon-sha256")" ] \
+  [ "$(sha256sum < "$directory/$app_id.desktop" | awk '{print $1}')" = "$(cat "$directory/.desktop-sha256")" ] \
+    || fail "Installed desktop entry was changed: $directory"
+  [ "$(sha256sum < "$directory/resources/icon.png" | awk '{print $1}')" = "$(cat "$directory/.icon-sha256")" ] \
     || fail "Installed icon checksum mismatch: $directory"
 }
 read_version_link() {
@@ -210,6 +216,8 @@ else
       printf 'Icon=%s\n' "$(desktop_value "$root/current/resources/icon.png")"
       printf '%s\n' 'Terminal=false' 'Categories=Utility;' 'StartupWMClass=switchbot-controller'
     } > "$bundle/$app_id.desktop"
+    printf '%s\n' "$root" > "$bundle/.install-root"
+    sha256sum < "$bundle/$app_id.desktop" | awk '{print $1}' > "$bundle/.desktop-sha256"
     printf '%s\n' "$payload_sha" > "$bundle/.payload-sha256"
     printf '%s\n' "$icon_sha" > "$bundle/.icon-sha256"
     mv -- "$bundle" "$root/$next"

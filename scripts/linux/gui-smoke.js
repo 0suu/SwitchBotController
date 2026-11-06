@@ -73,7 +73,7 @@ function verifyWindowIcon(text, expected) {
     if (image.data[i + 3] !== expected.data[i + 3]) throw new Error('Window icon alpha differs from packaged asset');
     if (!expected.data[i + 3]) continue;
     // Native image premultiplication can round partially transparent edges.
-    const tolerance = expected.data[i + 3] === 255 ? 0 : 4;
+    const tolerance = expected.data[i + 3] === 255 ? 0 : Math.ceil(255 / expected.data[i + 3]);
     for (let c = 0; c < 3; c++) if (Math.abs(image.data[i + c] - expected.data[i + c]) > tolerance) {
       throw new Error('Window icon pixels differ from the packaged asset');
     }
