@@ -133,7 +133,6 @@ async function main() {
   await delay(1000);
   const properties = run('xprop', ['-id', window, 'WM_CLASS', 'WM_NAME', '_NET_WM_PID']);
   fs.writeFileSync(path.join(evidence, 'window-properties.txt'), properties);
-  if (!properties.includes('"switchbot-controller", "switchbot-controller"')) throw new Error('Unexpected actual WM_CLASS');
   appPid = Number(properties.match(/_NET_WM_PID[^=]*=\s*(\d+)/)?.[1]);
   const iconProperty = run('xprop', ['-id', window, '-notype', '-f', '_NET_WM_ICON', '32c', '_NET_WM_ICON']);
   run('xwd', ['-root', '-silent', '-out', path.join(evidence, 'desktop.xwd')]);
@@ -144,6 +143,7 @@ async function main() {
   if (!output.includes(path.join(env.XDG_CONFIG_HOME, 'switchbot-controller'))) throw new Error('App did not confirm isolated config path');
   report.result = 'passed';
   report.displayBackend = 'X11/Xvfb (not KDE or Steam Frame hardware)';
+  report.windowIdentity = properties.trim();
   report.sandbox = 'Default Electron sandbox; no bypass flags or host policy changes';
   report.windowIcon = '512px runtime property matches packaged pixels (allowing native edge rounding)';
 }

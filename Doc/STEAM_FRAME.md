@@ -112,9 +112,11 @@ builds are a different architecture. Sources: [Valve specifications](https://sto
 The bundle includes Electron/Node but is not a static Linux executable. It
 requires compatible ARM64 glibc, GTK 3/GLib, NSS/NSPR, ATK, CUPS, D-Bus, ALSA,
 GBM/DRM and X11/XCB libraries, plus a desktop session. KDE's XWayland supports the
-normal X11 path. The installed `.desktop` name and `StartupWMClass` match
-Electron 36's existing `switchbot-controller` app name; no unsupported
-`app.setDesktopName` call is added. Wayland behavior still needs hardware testing.
+normal X11 path. The installed menu entry is named `switchbot-controller.desktop`; the Linux
+window icon points to the bundled PNG. No optional `StartupWMClass` hint or
+unsupported `app.setDesktopName` call is added. Actual window grouping, taskbar
+icon resolution, and Wayland app-id behavior remain unverified until a GUI run
+can observe them.
 
 - Wrong architecture: check `uname -m` says `aarch64`/`arm64`; do not use an x64 or macOS bundle.
 - Permission denied: install on a writable, executable local filesystem; `noexec` mounts cannot run it.

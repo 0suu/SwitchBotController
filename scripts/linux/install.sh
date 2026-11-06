@@ -219,7 +219,7 @@ else
       printf 'Exec=/usr/bin/env -- %s\n' "$(desktop_exec "$bin_path")"
       printf 'TryExec=%s\n' "$(desktop_value "$bin_path")"
       printf 'Icon=%s\n' "$(desktop_value "$root/current/resources/icon.png")"
-      printf '%s\n' 'Terminal=false' 'Categories=Utility;' 'StartupWMClass=switchbot-controller'
+      printf '%s\n' 'Terminal=false' 'Categories=Utility;'
     } > "$bundle/$app_id.desktop"
     printf '%s\n' "$root" > "$bundle/.install-root"
     sha256sum < "$bundle/$app_id.desktop" | awk '{print $1}' > "$bundle/.desktop-sha256"
