@@ -255,15 +255,25 @@ export const SettingsScreen: React.FC = () => {
           <Typography variant="body2" color="text.secondary" gutterBottom>
             {t("App Version")}: {t("Footer Version")}
           </Typography>
-          {window.autoUpdater && (
+          {window.autoUpdater?.manualUpdates && (
+            <Typography variant="body2" color="text.secondary">
+              {t("Linux manual updates")}
+            </Typography>
+          )}
+          {window.autoUpdater && !window.autoUpdater.manualUpdates && (
             <Box sx={{ mt: 1.5, display: "flex", alignItems: "center", gap: 1.5 }}>
               <Button
                 variant="outlined"
                 size="small"
                 disabled={updateCheckStatus === "checking"}
-                onClick={() => {
+                onClick={async () => {
                   setUpdateCheckStatus("checking");
-                  window.autoUpdater.checkForUpdates();
+                  try {
+                    const result = await window.autoUpdater.checkForUpdates();
+                    if (!result.success) setUpdateCheckStatus("error");
+                  } catch {
+                    setUpdateCheckStatus("error");
+                  }
                 }}
               >
                 {updateCheckStatus === "checking" ? t("Checking for updates...") : t("Check for updates")}

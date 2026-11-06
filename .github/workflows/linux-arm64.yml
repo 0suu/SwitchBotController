@@ -1,0 +1,36 @@
+name: Linux ARM64 portable build
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test -- --runInBand
+      - name: Build portable ARM64 archive (never publish)
+        run: npm run package:linux:arm64
+      - name: Inspect native architecture and packaged application files
+        run: |
+          file release/linux-arm64-unpacked/switchbot-controller | tee /tmp/elf-info
+          grep -q 'ARM aarch64' /tmp/elf-info
+          test -f release/linux-arm64-unpacked/resources/app.asar
+          node_modules/.bin/asar list release/linux-arm64-unpacked/resources/app.asar | grep '/dist_renderer/index.html'
+          node_modules/.bin/asar list release/linux-arm64-unpacked/resources/app.asar | grep '/dist_electron/src/preload/preload.js'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: switchbot-controller-linux-arm64
+          path: release/*-linux-arm64.tar.gz
+          if-no-files-found: error
