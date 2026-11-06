@@ -3,7 +3,7 @@
 export function getUpdateUnavailableReason(isPackaged: boolean, platform: NodeJS.Platform): string | undefined {
   if (!isPackaged) return "Update check is not available in development mode.";
   if (platform !== "win32" && platform !== "darwin") {
-    return "Update manually using the latest Linux ARM64 archive from GitHub Releases.";
+    return "Update manually by downloading and extracting a newer Linux ARM64 archive.";
   }
   return undefined;
 }
