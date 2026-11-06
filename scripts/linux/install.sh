@@ -212,7 +212,11 @@ else
   else
     {
       printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=SwitchBot Controller' 'Comment=Control SwitchBot devices using the Cloud API'
-      printf 'Exec=%s\n' "$(desktop_exec "$bin_path")"
+      # GIO checks the first Exec word before expanding %% field escapes.
+      # A fixed env executable keeps literal percent signs out of that word;
+      # the app path is an argument, never shell code.
+      printf 'Exec=/usr/bin/env -- %s\n' "$(desktop_exec "$bin_path")"
+      printf 'TryExec=%s\n' "$(desktop_value "$bin_path")"
       printf 'Icon=%s\n' "$(desktop_value "$root/current/resources/icon.png")"
       printf '%s\n' 'Terminal=false' 'Categories=Utility;' 'StartupWMClass=switchbot-controller'
     } > "$bundle/$app_id.desktop"

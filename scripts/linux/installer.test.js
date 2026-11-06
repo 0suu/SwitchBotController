@@ -71,8 +71,8 @@ describe('Linux user-space installer', { skip: process.platform !== 'linux' }, (
     fs.mkdirSync(prefix);
     const tools = path.join(base, 'tools');
     fs.mkdirSync(tools);
-    // Fixtures are portable shell programs. Only emulate the architecture check;
-    // never execute a foreign ELF or modify the host's security configuration.
+    // Harmless shell fixtures emulate ARM64 (and a normal-user ID on root test
+    // runners). All writes stay in the fixture prefix; no foreign ELF is run.
     fs.writeFileSync(path.join(tools, 'uname'), '#!/bin/sh\ncase "$1" in -s) echo Linux;; -m) echo aarch64;; esac\n', { mode: 0o755 });
     if (process.getuid() === 0) {
       fs.writeFileSync(path.join(tools, 'id'), '#!/bin/sh\necho 1000\n', { mode: 0o755 });
