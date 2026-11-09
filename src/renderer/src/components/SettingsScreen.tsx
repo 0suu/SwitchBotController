@@ -9,6 +9,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import Paper from "@mui/material/Paper";
 import MenuItem from "@mui/material/MenuItem";
+import type { UpdateMode } from "../../../types/autoUpdater";
 
 import { AppDispatch } from "../store/store"; // Adjust path
 import {
@@ -45,6 +46,18 @@ export const SettingsScreen: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [pollingInput, setPollingInput] = useState(pollingInterval);
   const [updateCheckStatus, setUpdateCheckStatus] = useState<"idle" | "checking" | "none" | "error">("idle");
+
+  const [updateMode, setUpdateMode] = useState<UpdateMode | "loading" | "unavailable">("loading");
+
+  useEffect(() => {
+    let active = true;
+    window.autoUpdater?.getMode().then(mode => {
+      if (active) setUpdateMode(mode);
+    }).catch(() => {
+      if (active) setUpdateMode("unavailable");
+    });
+    return () => { active = false; };
+  }, []);
 
   // Listen for update-not-available / update-available to update the check button status
   useEffect(() => {
@@ -255,15 +268,31 @@ export const SettingsScreen: React.FC = () => {
           <Typography variant="body2" color="text.secondary" gutterBottom>
             {t("App Version")}: {t("Footer Version")}
           </Typography>
-          {window.autoUpdater && (
+          {window.autoUpdater && updateMode === "manual" && (
+            <Typography variant="body2" color="text.secondary">
+              {t("Linux manual updates")}
+            </Typography>
+          )}
+          {window.autoUpdater && updateMode === "development" && (
+            <Typography variant="body2" color="text.secondary">{t("Development updates unavailable")}</Typography>
+          )}
+          {window.autoUpdater && updateMode === "unavailable" && (
+            <Typography variant="body2" color="text.secondary">{t("Update error")}</Typography>
+          )}
+          {window.autoUpdater && updateMode === "automatic" && (
             <Box sx={{ mt: 1.5, display: "flex", alignItems: "center", gap: 1.5 }}>
               <Button
                 variant="outlined"
                 size="small"
                 disabled={updateCheckStatus === "checking"}
-                onClick={() => {
+                onClick={async () => {
                   setUpdateCheckStatus("checking");
-                  window.autoUpdater.checkForUpdates();
+                  try {
+                    const result = await window.autoUpdater.checkForUpdates();
+                    if (!result.success) setUpdateCheckStatus("error");
+                  } catch {
+                    setUpdateCheckStatus("error");
+                  }
                 }}
               >
                 {updateCheckStatus === "checking" ? t("Checking for updates...") : t("Check for updates")}

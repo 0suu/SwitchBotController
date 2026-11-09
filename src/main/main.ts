@@ -5,6 +5,7 @@ import Store from "electron-store";
 import axios from "axios";
 import crypto from "crypto";
 import { autoUpdater } from "electron-updater";
+import { getUpdateMode, getUpdateUnavailableReason } from "./updatePolicy";
 
 // Define a schema for your store if you want type safety and defaults
 interface AppSettings {
@@ -105,6 +106,9 @@ function createWindow(): BrowserWindow {
     height: savedBounds?.height ?? 700,
     x: savedBounds?.x,
     y: savedBounds?.y,
+    icon: process.platform === "linux"
+      ? path.join(app.isPackaged ? process.resourcesPath : path.join(app.getAppPath(), "assets"), "icon.png")
+      : undefined,
     webPreferences: {
       preload: path.join(__dirname, "../preload/preload.js"),
       contextIsolation: true,
@@ -143,8 +147,8 @@ app.whenReady().then(() => {
   const win = createWindow();
   setupAutoUpdater(win);
 
-  // Check for updates after a short delay (skip in dev — app is not packaged)
-  if (app.isPackaged) {
+  // Check after a short delay only on supported packaged updater targets.
+  if (!getUpdateUnavailableReason(app.isPackaged, process.platform)) {
     setTimeout(() => {
       autoUpdater.checkForUpdates().catch((err) => {
         console.error("[AutoUpdater] Initial check failed:", err.message);
@@ -328,6 +332,7 @@ autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
 function setupAutoUpdater(win: BrowserWindow) {
+  if (getUpdateUnavailableReason(app.isPackaged, process.platform)) return;
   // Remove all previous listeners to avoid duplicates on window re-creation (macOS)
   autoUpdater.removeAllListeners();
 
@@ -363,9 +368,12 @@ function setupAutoUpdater(win: BrowserWindow) {
   });
 }
 
+ipcMain.handle("updater-mode", () => getUpdateMode(app.isPackaged, process.platform));
+
 ipcMain.handle("updater-check", async () => {
-  if (!app.isPackaged) {
-    return { success: false, error: "Update check is not available in development mode." };
+  const unavailableReason = getUpdateUnavailableReason(app.isPackaged, process.platform);
+  if (unavailableReason) {
+    return { success: false, error: unavailableReason };
   }
   try {
     const result = await autoUpdater.checkForUpdates();
@@ -377,6 +385,7 @@ ipcMain.handle("updater-check", async () => {
 });
 
 ipcMain.handle("updater-install", () => {
+  if (getUpdateUnavailableReason(app.isPackaged, process.platform)) return;
   autoUpdater.quitAndInstall(false, true);
 });
 

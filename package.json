@@ -19,7 +19,9 @@
     "build:electron:preload": "tsc -p tsconfig.json",
     "package": "npm run build && electron-builder",
     "test:watch": "cross-env TMPDIR=/tmp jest --watch",
-    "test:coverage": "cross-env TMPDIR=/tmp jest --coverage"
+    "test:coverage": "cross-env TMPDIR=/tmp jest --coverage",
+    "package:linux:arm64": "npm run build && node scripts/linux/build-info.js && electron-builder --linux tar.gz --arm64 --publish never && node scripts/build-linux-installer.js",
+    "test:linux-installer": "node --test scripts/linux/installer.test.js"
   },
   "repository": {
     "type": "git",
@@ -115,6 +117,29 @@
       "icon": "assets/icon.icns",
       "category": "public.utility",
       "identity": null
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "tar.gz",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "Utility",
+      "icon": "assets/icon.png",
+      "artifactName": "${name}-${version}-linux-${arch}.${ext}",
+      "extraResources": [
+        {
+          "from": "assets/icon.png",
+          "to": "icon.png"
+        },
+        {
+          "from": "build/linux-build-info.json",
+          "to": "build-info.json"
+        }
+      ]
     }
   }
 }

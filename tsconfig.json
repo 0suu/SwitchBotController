@@ -14,5 +14,5 @@
     "declaration": true
   },
   "include": ["src/main/**/*.ts", "src/preload/**/*.ts", "src/types/**/*.d.ts"],
-  "exclude": ["node_modules", "src/renderer", "dist_electron", "dist_renderer"]
+  "exclude": ["node_modules", "src/renderer", "dist_electron", "dist_renderer", "**/*.test.ts"]
 }

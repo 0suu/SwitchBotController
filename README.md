@@ -1,4 +1,15 @@
 # SwitchBot Controller
+## Steam Frame / Linux ARM64
+
+**Steam Frame実機では未検証です。** 起動・描画・入力・サンドボックス・API操作の実機確認は残っています。このdraft PRの成果物は承認済みリリースではありません。
+
+Steam FrameのKDEデスクトップ向けに、ユーザー領域へ導入してアイコン付きメニューから起動するLinux ARM64版（.run）と、展開して使うtar.gz版をビルドできます。取得・起動・手動更新・実機での確認項目は [Steam Frameガイド](Doc/STEAM_FRAME.md) を参照してください。
+
+```sh
+npm ci
+npm run package:linux:arm64
+```
+
 ## デモ / Demo: https://switchbot-controller.suu31.net/
 
 <p>

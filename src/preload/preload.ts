@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import type { AutoUpdaterAPI } from "../types/autoUpdater";
 
 // Define the API structure that will be exposed to the renderer
 export interface ElectronStoreAPI {
@@ -37,18 +38,8 @@ const switchBotBridgeApi: SwitchBotBridgeAPI = {
 contextBridge.exposeInMainWorld("electronStore", electronStoreApi);
 contextBridge.exposeInMainWorld("switchBotBridge", switchBotBridgeApi);
 
-// Auto-updater API
-export interface AutoUpdaterAPI {
-  checkForUpdates: () => Promise<{ success: boolean; version?: string; error?: string }>;
-  installUpdate: () => Promise<void>;
-  onUpdateAvailable: (callback: (info: { version: string }) => void) => () => void;
-  onUpdateDownloaded: (callback: (info: { version: string }) => void) => () => void;
-  onDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
-  onUpdateError: (callback: (info: { message: string }) => void) => () => void;
-  onUpdateNotAvailable: (callback: () => void) => () => void;
-}
-
 const autoUpdaterApi: AutoUpdaterAPI = {
+  getMode: () => ipcRenderer.invoke("updater-mode"),
   checkForUpdates: () => ipcRenderer.invoke("updater-check"),
   installUpdate: () => ipcRenderer.invoke("updater-install"),
   onUpdateAvailable: (callback) => {
