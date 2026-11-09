@@ -3,7 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 function buildInstaller(archive, output, archiveRoot, icon, buildInfo = {}) {
-  if (!/^[a-z0-9][a-z0-9.+-]*$/.test(archiveRoot)) throw new Error('Invalid archive root');
+  if (!/^[A-Za-z0-9][A-Za-z0-9.+-]*$/.test(archiveRoot)) throw new Error('Invalid archive root');
   if (path.resolve(archive) === path.resolve(output)) throw new Error('Installer would overwrite its payload');
   try {
     if (fs.lstatSync(output).isSymbolicLink()) throw new Error('Installer output is a symlink');

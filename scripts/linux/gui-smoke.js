@@ -19,7 +19,6 @@ const env = { ...process.env, HOME: home, XDG_CONFIG_HOME: path.join(home, '.con
 delete env.ELECTRON_DISABLE_SANDBOX;
 fs.mkdirSync(env.XDG_RUNTIME_DIR, { mode: 0o700 });
 let displayServer;
-let appPid;
 let nativeExecutable;
 env.SWITCHBOT_GUI_SMOKE_ID = temporary;
 
@@ -133,8 +132,8 @@ async function main() {
   await delay(1000);
   const properties = run('xprop', ['-id', window, 'WM_CLASS', 'WM_NAME', '_NET_WM_PID']);
   fs.writeFileSync(path.join(evidence, 'window-properties.txt'), properties);
-  appPid = Number(properties.match(/_NET_WM_PID[^=]*=\s*(\d+)/)?.[1]);
-  const iconProperty = run('xprop', ['-id', window, '-notype', '-f', '_NET_WM_ICON', '32c', '_NET_WM_ICON']);
+  // xprop's default limit truncates a 512px icon, whose CARDINALs use Xlib longs.
+  const iconProperty = run('xprop', ['-id', window, '-len', '4194304', '-notype', '-f', '_NET_WM_ICON', '32c', '_NET_WM_ICON']);
   run('xwd', ['-root', '-silent', '-out', path.join(evidence, 'desktop.xwd')]);
   xwdToPng(path.join(evidence, 'desktop.xwd'), path.join(evidence, 'desktop.png'));
   fs.unlinkSync(path.join(evidence, 'desktop.xwd'));

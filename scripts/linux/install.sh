@@ -36,7 +36,7 @@ done
 case "$(uname -m)" in aarch64|arm64) ;; *) fail 'This build requires ARM64 (aarch64), not x64.' ;; esac
 [ "$(id -u)" != 0 ] || fail 'Run as your normal desktop user, without sudo.'
 [ -x /usr/bin/env ] || fail 'Missing desktop launcher dependency: /usr/bin/env'
-for command_name in tar tail awk sha256sum mktemp mv ln readlink grep; do
+for command_name in tar tail awk sha256sum mktemp mv ln readlink stat grep; do
   command -v "$command_name" >/dev/null || fail "Missing command: $command_name"
 done
 
@@ -74,6 +74,7 @@ bin_path="$bin_dir/$app_id"
 desktop_path="$applications/$app_id.desktop"
 bin_target="$root/current/$app_id"
 desktop_target="$root/current/$app_id.desktop"
+pending_switch="$root/.pending-switch"
 
 check_root() {
   [ ! -L "$root" ] || fail "Refusing symlink application directory: $root"
@@ -85,10 +86,14 @@ check_root() {
     fail 'No installation to roll back.'
   fi
 }
+read_owned_link() {
+  # GNU stat reports the link's owner even while its target is missing.
+  [ -L "$1" ] && [ "$(stat -c %u -- "$1")" = "$EUID" ] || return 1
+  readlink "$1"
+}
 check_link() {
   if [ -e "$1" ] || [ -L "$1" ]; then
-    [ -L "$1" ] && [ -O "$1" ] && [ "$(readlink "$1")" = "$2" ] \
-      || fail "Refusing unrelated existing launcher: $1"
+    [ "$(read_owned_link "$1")" = "$2" ] || fail "Refusing unrelated existing launcher: $1"
   fi
 }
 check_root
@@ -101,22 +106,71 @@ locked=false
 created_bin=false
 created_desktop=false
 success=false
-previous_changed=false
-old_previous=
+switch_started=false
 old_current=
+next=
 pointer_sequence=0
+
+is_version_target() { [[ "$1" =~ ^versions/[0-9a-f]{64}$ ]]; }
+read_version_link() {
+  local location=$1 target
+  if [ -e "$location" ] || [ -L "$location" ]; then
+    target=$(read_owned_link "$location") && is_version_target "$target" \
+      || fail "Refusing unrelated existing version pointer: $location"
+    printf '%s' "$target"
+  fi
+}
+
+atomic_link() {
+  pointer_sequence=$((pointer_sequence + 1))
+  ln -s -- "$1" "$stage/pointer.$pointer_sequence" || return 1
+  # GNU mv -T replaces the link itself, never a directory reached through it.
+  mv -Tf -- "$stage/pointer.$pointer_sequence" "$2"
+}
+
+set_previous() {
+  if [ -n "$1" ]; then
+    atomic_link "$1" "$root/previous"
+  elif [ -L "$root/previous" ]; then
+    rm -- "$root/previous"
+  fi
+}
+
+# The rename of current commits the switch. Until then, the saved previous
+# target lets a retry recover from process interruption between the renames.
+recover_version_switch() {
+  [ -e "$pending_switch" ] || [ -L "$pending_switch" ] || return 0
+  [ -f "$pending_switch" ] && [ ! -L "$pending_switch" ] && [ -O "$pending_switch" ] \
+    || fail "Unrecognized version switch record: $pending_switch"
+  local from to saved_previous current previous
+  {
+    IFS= read -r from && IFS= read -r to && IFS= read -r saved_previous
+  } < "$pending_switch" || fail "Incomplete version switch record: $pending_switch"
+  { [ -z "$from" ] || is_version_target "$from"; } && is_version_target "$to" \
+    && { [ -z "$saved_previous" ] || is_version_target "$saved_previous"; } \
+    || fail "Invalid version switch record: $pending_switch"
+
+  current=$(read_version_link "$root/current") || return 1
+  previous=$(read_version_link "$root/previous") || return 1
+  case "$current" in
+    "$from")
+      if [ "$previous" != "$saved_previous" ]; then
+        set_previous "$saved_previous" || return 1
+      fi ;;
+    "$to") ;;
+    *) fail "Current version changed during an interrupted switch: $pending_switch" ;;
+  esac
+  rm -- "$pending_switch"
+}
+
 cleanup() {
   set +e
   if ! "$success"; then
-    if "$previous_changed"; then
-      if [ -n "$old_previous" ]; then
-        ln -s -- "$old_previous" "$stage/restore-previous" && mv -Tf -- "$stage/restore-previous" "$root/previous"
-      elif [ -L "$root/previous" ] && [ "$(readlink "$root/previous")" = "$old_current" ]; then
-        rm -- "$root/previous"
-      fi
+    if "$switch_started"; then (recover_version_switch); fi
+    if [ "$old_current" = "$next" ] || [ "$(read_owned_link "$root/current")" != "$next" ]; then
+      if "$created_bin" && [ "$(read_owned_link "$bin_path")" = "$bin_target" ]; then rm -- "$bin_path"; fi
+      if "$created_desktop" && [ "$(read_owned_link "$desktop_path")" = "$desktop_target" ]; then rm -- "$desktop_path"; fi
     fi
-    if "$created_bin" && [ -L "$bin_path" ] && [ "$(readlink "$bin_path")" = "$bin_target" ]; then rm -- "$bin_path"; fi
-    if "$created_desktop" && [ -L "$desktop_path" ] && [ "$(readlink "$desktop_path")" = "$desktop_target" ]; then rm -- "$desktop_path"; fi
   fi
   if "$locked"; then rmdir -- "$root/.install-lock"; fi
   # Only remove this invocation's newly-created staging directory.
@@ -148,13 +202,16 @@ fi
 
 check_root
 if [ ! -d "$root" ]; then
-  mkdir -- "$root"
-  printf '%s\n' "$app_id" > "$root/.installer-v1"
+  mkdir -- "$stage/root"
+  printf '%s\n' "$app_id" > "$stage/root/.installer-v1"
+  mv -Tn -- "$stage/root" "$root"
+  check_root
 fi
 printf -v remove_lock_command 'rmdir -- %q' "$root/.install-lock"
 mkdir -- "$root/.install-lock" || fail "Another installer may be running. If none is running, remove the empty lock with: $remove_lock_command"
 locked=true
 ensure_directory "$root/versions"
+recover_version_switch
 ensure_directory "$bin_dir"
 ensure_directory "$applications"
 check_link "$bin_path" "$bin_target"
@@ -162,7 +219,7 @@ check_link "$desktop_path" "$desktop_target"
 
 validate_version() {
   local target=$1 directory="$root/$1"
-  [[ "$target" =~ ^versions/[0-9a-f]{64}$ ]] || fail 'Unrecognized installed version link.'
+  is_version_target "$target" || fail 'Unrecognized installed version link.'
   [ -d "$directory" ] && [ ! -L "$directory" ] && [ -O "$directory" ] \
     && [ -d "$directory/resources" ] && [ ! -L "$directory/resources" ] \
     && [ -f "$directory/.install-root" ] && [ ! -L "$directory/.install-root" ] && [ "$(cat "$directory/.install-root")" = "$root" ] \
@@ -180,17 +237,6 @@ validate_version() {
   [ "$(sha256sum < "$directory/resources/icon.png" | awk '{print $1}')" = "$(cat "$directory/.icon-sha256")" ] \
     || fail "Installed icon checksum mismatch: $directory"
 }
-read_version_link() {
-  local location=$1
-  if [ -L "$location" ]; then
-    local target
-    target=$(readlink "$location")
-    validate_version "$target"
-    printf '%s' "$target"
-  elif [ -e "$location" ]; then
-    fail "Refusing unrelated existing version pointer: $location"
-  fi
-}
 old_current=$(read_version_link "$root/current")
 old_previous=$(read_version_link "$root/previous")
 
@@ -204,8 +250,9 @@ desktop_exec() {
   desktop_value "\"$value\""
 }
 if "$rollback"; then
-  [ -n "$old_current" ] && [ -n "$old_previous" ] || fail 'No previous version to roll back to.'
+  [ -n "$old_previous" ] && [ "$old_previous" != "$old_current" ] || fail 'No previous version to roll back to.'
   next=$old_previous
+  validate_version "$next"
 else
   next="versions/$payload_sha"
   if [ -e "$root/$next" ] || [ -L "$root/$next" ]; then
@@ -230,20 +277,34 @@ else
   fi
 fi
 
-if [ ! -L "$bin_path" ]; then ln -s -- "$bin_target" "$bin_path"; created_bin=true; fi
-if [ ! -L "$desktop_path" ]; then ln -s -- "$desktop_target" "$desktop_path"; created_desktop=true; fi
-atomic_link() {
-  pointer_sequence=$((pointer_sequence + 1))
-  ln -s -- "$1" "$stage/pointer.$pointer_sequence"
-  # GNU mv -T replaces the link itself, never a directory reached through it.
-  mv -Tf -- "$stage/pointer.$pointer_sequence" "$2"
-}
+if [ -L "$bin_path" ]; then
+  check_link "$bin_path" "$bin_target"
+else
+  ln -sT -- "$bin_target" "$bin_path"
+  created_bin=true
+fi
+if [ -L "$desktop_path" ]; then
+  check_link "$desktop_path" "$desktop_target"
+else
+  ln -sT -- "$desktop_target" "$desktop_path"
+  created_desktop=true
+fi
 if [ "$old_current" != "$next" ]; then
-  if [ -n "$old_current" ]; then
-    atomic_link "$old_current" "$root/previous"
-    previous_changed=true
+  next_previous=$old_previous
+  if [ -n "$old_current" ] && (validate_version "$old_current") 2>/dev/null; then
+    next_previous=$old_current
+  elif [ "$old_previous" = "$next" ]; then
+    # Rolling back from a damaged version leaves no usable version to swap to.
+    next_previous=
+  fi
+  if [ "$next_previous" != "$old_previous" ]; then
+    switch_started=true
+    printf '%s\n' "$old_current" "$next" "$old_previous" > "$stage/pending-switch"
+    mv -Tf -- "$stage/pending-switch" "$pending_switch"
+    set_previous "$next_previous"
   fi
   atomic_link "$next" "$root/current"
+  recover_version_switch
 fi
 success=true
 printf 'Installed. Open "SwitchBot Controller" from your application menu.\nLauncher: %s\n' "$bin_path"

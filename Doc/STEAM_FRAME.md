@@ -87,7 +87,9 @@ sh ./switchbot-controller-1.3.2-linux-arm64.run --rollback
 Old version folders are intentionally not deleted automatically. An interrupted
 installer can leave its empty `.install-lock` directory; follow the explicit
 `rmdir` message only after confirming no installer is running. Do not remove
-another process's lock. A killed installer does not remove the current version.
+another process's lock. Rerun the same or a newer installer to settle an
+interrupted switch. If the current version is damaged, select a usable previous
+version with `--rollback` or install a newer payload.
 
 Settings/token files are outside these installation paths, normally
 `~/.config/switchbot-controller/switchbot-controller-config.json` (or under
