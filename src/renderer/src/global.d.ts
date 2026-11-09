@@ -1,6 +1,7 @@
 // src/renderer/src/global.d.ts
 // This definition helps TypeScript understand objects exposed from preload script via contextBridge.
 import type { CommandType } from "./constants/commandConstants";
+import type { AutoUpdaterAPI } from "../../types/autoUpdater";
 
 // Assuming ElectronStoreAPI is exported from your preload script or its type definition file
 // If your preload.ts exports the type, you might do:
@@ -26,17 +27,6 @@ export interface SwitchBotBridgeAPI {
   ) => Promise<any>;
   getScenes: () => Promise<any>;
   executeScene: (sceneId: string) => Promise<any>;
-}
-
-export interface AutoUpdaterAPI {
-  getMode: () => Promise<"automatic" | "manual" | "development">;
-  checkForUpdates: () => Promise<{ success: boolean; version?: string; error?: string }>;
-  installUpdate: () => Promise<void>;
-  onUpdateAvailable: (callback: (info: { version: string }) => void) => () => void;
-  onUpdateDownloaded: (callback: (info: { version: string }) => void) => () => void;
-  onDownloadProgress: (callback: (info: { percent: number }) => void) => () => void;
-  onUpdateError: (callback: (info: { message: string }) => void) => () => void;
-  onUpdateNotAvailable: (callback: () => void) => () => void;
 }
 
 declare global {

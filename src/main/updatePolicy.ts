@@ -1,4 +1,4 @@
-export type UpdateMode = "automatic" | "manual" | "development";
+import type { UpdateMode } from "../types/autoUpdater";
 
 // One authoritative mode is used by startup, IPC, and the Settings UI.
 export function getUpdateMode(isPackaged: boolean, platform: NodeJS.Platform): UpdateMode {

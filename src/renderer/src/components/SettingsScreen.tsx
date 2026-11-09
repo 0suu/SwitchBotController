@@ -9,6 +9,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import Paper from "@mui/material/Paper";
 import MenuItem from "@mui/material/MenuItem";
+import type { UpdateMode } from "../../../types/autoUpdater";
 
 import { AppDispatch } from "../store/store"; // Adjust path
 import {
@@ -46,7 +47,7 @@ export const SettingsScreen: React.FC = () => {
   const [pollingInput, setPollingInput] = useState(pollingInterval);
   const [updateCheckStatus, setUpdateCheckStatus] = useState<"idle" | "checking" | "none" | "error">("idle");
 
-  const [updateMode, setUpdateMode] = useState<"loading" | "automatic" | "manual" | "development" | "unavailable">("loading");
+  const [updateMode, setUpdateMode] = useState<UpdateMode | "loading" | "unavailable">("loading");
 
   useEffect(() => {
     let active = true;

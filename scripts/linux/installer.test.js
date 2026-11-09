@@ -118,21 +118,60 @@ exec "$SB_TEST_REAL_MV" "$@"
     assert.equal(fs.existsSync(path.join(s.prefix, 'share/autostart')), false);
   });
 
-  test('reinstall, update, and rollback preserve the previous version and unrelated config', () => {
+  test('reinstall, update, and rollback keep only the current and previous versions', () => {
     const s = setup();
     const config = path.join(s.base, 'profile/switchbot-controller/switchbot-controller-config.json');
     fs.mkdirSync(path.dirname(config), { recursive: true });
     fs.writeFileSync(config, 'unchanged-secret-placeholder');
     const first = fixture(s.base, '1');
     const second = fixture(s.base, '2');
+    const third = fixture(s.base, '3');
     passed(s.install(first.installer));
     passed(s.install(first.installer));
     passed(s.install(second.installer));
+    passed(s.install(third.installer));
+    const retained = [second.hash, third.hash].sort();
+    assert.deepEqual(fs.readdirSync(path.join(s.appRoot, 'versions')).sort(), retained);
+    assert.equal(fs.readlinkSync(path.join(s.appRoot, 'current')), `versions/${third.hash}`);
+    assert.equal(fs.readlinkSync(path.join(s.appRoot, 'previous')), `versions/${second.hash}`);
+    passed(s.install(third.installer, ['--rollback']));
     assert.equal(fs.readlinkSync(path.join(s.appRoot, 'current')), `versions/${second.hash}`);
-    assert.equal(fs.readlinkSync(path.join(s.appRoot, 'previous')), `versions/${first.hash}`);
-    passed(s.install(second.installer, ['--rollback']));
-    assert.equal(fs.readlinkSync(path.join(s.appRoot, 'current')), `versions/${first.hash}`);
+    assert.equal(fs.readlinkSync(path.join(s.appRoot, 'previous')), `versions/${third.hash}`);
+    assert.deepEqual(fs.readdirSync(path.join(s.appRoot, 'versions')).sort(), retained);
     assert.equal(fs.readFileSync(config, 'utf8'), 'unchanged-secret-placeholder');
+  });
+
+  test('reinstall retires legacy managed versions and preserves unrelated directories and links', () => {
+    const s = setup();
+    const f = fixture(s.base);
+    passed(s.install(f.installer));
+    const versions = path.join(s.appRoot, 'versions');
+    const obsoleteHash = 'a'.repeat(64);
+    const obsolete = path.join(versions, obsoleteHash);
+    fs.cpSync(path.join(versions, f.hash), obsolete, { recursive: true });
+    fs.writeFileSync(path.join(obsolete, '.payload-sha256'), obsoleteHash);
+
+    const foreign = path.join(versions, 'b'.repeat(64));
+    fs.mkdirSync(foreign);
+    fs.writeFileSync(path.join(foreign, '.payload-sha256'), 'b'.repeat(64));
+    fs.writeFileSync(path.join(foreign, '.install-root'), s.base);
+    const symlinkHash = 'c'.repeat(64);
+    const symlink = path.join(versions, symlinkHash);
+    const linkedDir = path.join(s.base, 'linked-directory');
+    fs.mkdirSync(linkedDir);
+    fs.writeFileSync(path.join(linkedDir, '.install-root'), s.appRoot);
+    fs.writeFileSync(path.join(linkedDir, '.payload-sha256'), symlinkHash);
+    fs.symlinkSync(linkedDir, symlink);
+    const markerLinkHash = 'd'.repeat(64);
+    const markerLink = path.join(versions, markerLinkHash);
+    fs.mkdirSync(markerLink);
+    fs.symlinkSync(path.join(versions, f.hash, '.install-root'), path.join(markerLink, '.install-root'));
+    fs.writeFileSync(path.join(markerLink, '.payload-sha256'), markerLinkHash);
+
+    passed(s.install(f.installer));
+    assert.deepEqual(fs.readdirSync(versions).sort(), [f.hash, path.basename(foreign), symlinkHash, markerLinkHash].sort());
+    assert.equal(fs.readFileSync(path.join(foreign, '.install-root'), 'utf8'), s.base);
+    assert.equal(fs.readlinkSync(symlink), linkedDir);
   });
 
   test('a killed first install can retry after removing its stale lock', () => {
@@ -172,6 +211,7 @@ exec "$SB_TEST_REAL_MV" "$@"
     failed(s.install(versions[2].installer));
     assert.equal(fs.readlinkSync(path.join(s.appRoot, 'current')), `versions/${versions[1].hash}`);
     assert.equal(fs.readlinkSync(path.join(s.appRoot, 'previous')), `versions/${versions[0].hash}`);
+    assert.equal(fs.readFileSync(path.join(s.appRoot, 'previous/resources/app.asar'), 'utf8'), 'fixture-1');
     passed(spawnSync(s.executable, ['still works'], { env: s.env, encoding: 'utf8' }));
     assert.equal(fs.existsSync(path.join(s.appRoot, '.install-lock')), false);
   });
@@ -216,6 +256,7 @@ exec "$SB_TEST_REAL_MV" "$@"
       const previous = path.join(s.appRoot, 'previous');
       if (rollback) assert.equal(fs.lstatSync(previous, { throwIfNoEntry: false }), undefined);
       else assert.equal(fs.readlinkSync(previous), `versions/${first.hash}`);
+      assert.equal(fs.existsSync(path.join(s.appRoot, 'versions', second.hash)), false);
     }
   });
 

@@ -84,12 +84,16 @@ is supported. The previous version is retained, and can be selected with:
 sh ./switchbot-controller-1.3.2-linux-arm64.run --rollback
 ```
 
-Old version folders are intentionally not deleted automatically. An interrupted
-installer can leave its empty `.install-lock` directory; follow the explicit
-`rmdir` message only after confirming no installer is running. Do not remove
-another process's lock. Rerun the same or a newer installer to settle an
-interrupted switch. If the current version is damaged, select a usable previous
-version with `--rollback` or install a newer payload.
+After a successful install, update, or rollback, the installer keeps the current
+version and one rollback version when available. It removes other version
+directories managed by this installation, including ones left by older installers.
+正常終了後は現行版と巻き戻し用の旧版1つを残し、管理対象の古い版を整理します。
+
+An interrupted installer can leave an empty `.install-lock` directory. Follow
+the `rmdir` message only after confirming no installer is running. Rerun the
+same or a newer installer to settle an interrupted switch. If the current
+version is damaged, select a usable previous version with `--rollback` or
+install a newer payload.
 
 Settings/token files are outside these installation paths, normally
 `~/.config/switchbot-controller/switchbot-controller-config.json` (or under
@@ -143,9 +147,11 @@ npm run package:linux:arm64
 The packaging command never publishes. It produces both `.run` and `.tar.gz`
 in `release/`, records the actual build commit, and bundles the existing licenses
 and icon. The native Linux ARM64 workflow checks installer fixtures, desktop-entry
-parsing, package contents, and attempts an installed-launcher GUI smoke test using
-an isolated temporary home/config. GUI evidence records **passed**, **blocked**,
-or **failed**, including the exact host/tool/library limitation. It never changes
+parsing, package contents, and attempts to open the installed launcher in an
+isolated temporary home/config. The GUI check looks for the app window and a
+non-empty X11 window icon with the packaged icon's dimensions. GUI evidence
+records **passed**, **blocked**, or **failed**, including the exact
+host/tool/library limitation. It never changes
 host sandbox policy. A successful packaging job does not by itself establish a
 successful GUI launch. Xvfb/X11 CI is not KDE, Wayland, or Steam Frame hardware.
 

@@ -174,7 +174,7 @@ cleanup() {
   fi
   if "$locked"; then rmdir -- "$root/.install-lock"; fi
   # Only remove this invocation's newly-created staging directory.
-  rm -rf -- "$stage"
+  rm -rf --one-file-system -- "$stage"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
@@ -217,15 +217,21 @@ ensure_directory "$applications"
 check_link "$bin_path" "$bin_target"
 check_link "$desktop_path" "$desktop_target"
 
+is_managed_version() {
+  local target=$1 directory="$root/$1"
+  is_version_target "$target" \
+    && [ -d "$directory" ] && [ ! -L "$directory" ] && [ -O "$directory" ] \
+    && [ -f "$directory/.install-root" ] && [ ! -L "$directory/.install-root" ] && [ -O "$directory/.install-root" ] \
+    && [ "$(cat "$directory/.install-root")" = "$root" ] \
+    && [ -f "$directory/.payload-sha256" ] && [ ! -L "$directory/.payload-sha256" ] && [ -O "$directory/.payload-sha256" ] \
+    && [ "$(cat "$directory/.payload-sha256")" = "${target#versions/}" ]
+}
+
 validate_version() {
   local target=$1 directory="$root/$1"
-  is_version_target "$target" || fail 'Unrecognized installed version link.'
-  [ -d "$directory" ] && [ ! -L "$directory" ] && [ -O "$directory" ] \
+  is_managed_version "$target" \
     && [ -d "$directory/resources" ] && [ ! -L "$directory/resources" ] \
-    && [ -f "$directory/.install-root" ] && [ ! -L "$directory/.install-root" ] && [ "$(cat "$directory/.install-root")" = "$root" ] \
     && [ -f "$directory/.desktop-sha256" ] && [ ! -L "$directory/.desktop-sha256" ] \
-    && [ -f "$directory/.payload-sha256" ] && [ ! -L "$directory/.payload-sha256" ] \
-    && [ "$(cat "$directory/.payload-sha256")" = "${target#versions/}" ] \
     && [ -f "$directory/.icon-sha256" ] && [ ! -L "$directory/.icon-sha256" ] \
     && [ -f "$directory/$app_id" ] && [ ! -L "$directory/$app_id" ] && [ -x "$directory/$app_id" ] \
     && [ -f "$directory/resources/app.asar" ] && [ ! -L "$directory/resources/app.asar" ] \
@@ -237,6 +243,20 @@ validate_version() {
   [ "$(sha256sum < "$directory/resources/icon.png" | awk '{print $1}')" = "$(cat "$directory/.icon-sha256")" ] \
     || fail "Installed icon checksum mismatch: $directory"
 }
+
+retire_old_versions() {
+  local current=$1 previous=$2 directory target
+  for directory in "$root"/versions/*; do
+    target="versions/${directory##*/}"
+    if [ "$target" = "$current" ] || [ "$target" = "$previous" ]; then continue; fi
+    if is_managed_version "$target"; then
+      # Move it out of versions before the staging directory is deleted.
+      mv -T -- "$directory" "$stage/retired-${directory##*/}" \
+        || printf 'Warning: could not retire old installed version: %s\n' "$directory" >&2
+    fi
+  done
+}
+
 old_current=$(read_version_link "$root/current")
 old_previous=$(read_version_link "$root/previous")
 
@@ -289,8 +309,8 @@ else
   ln -sT -- "$desktop_target" "$desktop_path"
   created_desktop=true
 fi
+next_previous=$old_previous
 if [ "$old_current" != "$next" ]; then
-  next_previous=$old_previous
   if [ -n "$old_current" ] && (validate_version "$old_current") 2>/dev/null; then
     next_previous=$old_current
   elif [ "$old_previous" = "$next" ]; then
@@ -307,6 +327,7 @@ if [ "$old_current" != "$next" ]; then
   recover_version_switch
 fi
 success=true
+retire_old_versions "$next" "$next_previous"
 printf 'Installed. Open "SwitchBot Controller" from your application menu.\nLauncher: %s\n' "$bin_path"
 printf 'Installer build commit: %s (uncommitted source changes: %s). This is provenance, not a safety approval.\n' "$build_commit" "$source_dirty"
 printf 'Installed app provenance: %s\n' "$root/current/resources/build-info.json"
